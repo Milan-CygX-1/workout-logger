@@ -985,6 +985,19 @@ function wireEvents(){
   $("#historyFilterWorkout").addEventListener("change", renderHistory);
   $("#historySearch").addEventListener("input", debounce(renderHistory, 250));
   $("#deleteAllBtn").addEventListener("click", deleteAllSessions);
+
+  const logDatePickerBtn = $("#logDatePickerBtn");
+  if(logDatePickerBtn){
+    logDatePickerBtn.addEventListener("click", () => {
+      const logDate = $("#logDate");
+      if(typeof logDate.showPicker === "function"){
+        logDate.showPicker();
+        return;
+      }
+      logDate.focus();
+      logDate.click();
+    });
+  }
 }
 
 (async function init(){

@@ -93,6 +93,18 @@ input, select, textarea{
 input:focus, select:focus, textarea:focus{border-color: rgba(56,189,248,.7); box-shadow: 0 0 0 3px rgba(56,189,248,.14)}
 textarea{min-height:44px; resize:vertical}
 
+.date-picker{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.date-picker input{flex:1}
+.icon-btn{
+  padding:9px 11px;
+  font-size:16px;
+  line-height:1;
+}
+
 .h2{margin:0 0 10px; font-size:16px}
 .sub{margin-top:6px; color:#94a3b8; font-size:12px}
 .divider{height:1px; background: rgba(31,41,55,.9); margin:12px 0}
