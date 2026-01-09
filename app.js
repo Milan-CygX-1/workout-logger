@@ -279,13 +279,13 @@ function renderExerciseList(){
           </div>
         </div>
 
-        <div class="ex-grid">
-          <div>
-            <label>Sets done</label>
-            <input inputmode="numeric" class="setsDone" placeholder="${setsPlanned}" />
-            <div class="sub">Auto-calculates from reps unless you type here.</div>
-          </div>
+        <div>
+          <label>Reps in set (grid)</label>
+          <div class="reps-grid">${repCells}</div>
+          <div class="sub">Track each set separately to see progression.</div>
+        </div>
 
+        <div class="ex-grid">
           <div>
             <label>Rest (min)</label>
             <input inputmode="decimal" class="restMin" placeholder="${escapeHtml(defaultRest)}" />
@@ -300,9 +300,9 @@ function renderExerciseList(){
         </div>
 
         <div>
-          <label>Reps in set (grid)</label>
-          <div class="reps-grid">${repCells}</div>
-          <div class="sub">Track each set separately to see progression.</div>
+          <label>Sets done</label>
+          <input inputmode="numeric" class="setsDone" placeholder="${setsPlanned}" />
+          <div class="sub">Auto-calculates from reps unless you type here.</div>
         </div>
 
         <div>
