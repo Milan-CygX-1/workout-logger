@@ -1,0 +1,10 @@
+body {
+  font-family: system-ui, sans-serif;
+  background: #0b0f19;
+  color: #e5e7eb;
+  margin: 0;
+}
+section { padding: 16px; border-bottom: 1px solid #1f2937; }
+label { display:block; margin-bottom:8px; }
+input, select { width:100%; padding:8px; margin-top:4px; }
+button { padding:10px 14px; margin-top:10px; }

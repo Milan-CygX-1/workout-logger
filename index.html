@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Workout Logger</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <h1>Workout Logger</h1>
+      <div class="actions">
+        <button id="exportBtn">Export</button>
+        <label for="importFile">Import</label>
+        <input id="importFile" type="file" accept="application/json" hidden>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <section>
+      <h2>Logging</h2>
+      <label>Date <input type="date" id="logDate"></label>
+      <label>Workout <select id="workoutType"></select></label>
+      <div id="exerciseList"></div>
+      <button id="saveSessionBtn">Save Session</button>
+    </section>
+
+    <section>
+      <h2>Config</h2>
+      <table id="configTable">
+        <thead>
+          <tr>
+            <th>Exercise</th><th>Workout</th><th>Sets</th><th>Rep Low</th><th>Rep High</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="saveConfigBtn">Save Config</button>
+    </section>
+
+    <section>
+      <h2>History</h2>
+      <div id="historyList"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
