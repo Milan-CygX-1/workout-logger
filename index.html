@@ -93,6 +93,14 @@
             Data is stored locally in <b>IndexedDB</b> in this browser. Use <b>Export</b> occasionally to back up.
             Import restores config + sessions.
             <div class="divider"></div>
+            <div class="row between" style="align-items:center">
+              <div>
+                <div><b>Auto backup</b>: stored locally after saves.</div>
+                <div id="backupStatus" class="sub">No backup yet.</div>
+              </div>
+              <button class="btn small" id="downloadBackupBtn">Download backup</button>
+            </div>
+            <div class="divider"></div>
             <div class="kpi" id="kpis"></div>
           </div>
         </div>

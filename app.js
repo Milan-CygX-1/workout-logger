@@ -11,6 +11,7 @@ const DB_NAME = "workout_logger_db";
 const DB_VERSION = 1;
 const STORE_CONFIG = "config";
 const STORE_SESSIONS = "sessions";
+const BACKUP_KEY = "workout_logger_backup_v1";
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -219,7 +220,7 @@ function renderKPIs(sessions){
     <div class="card">
       <div class="k">Last session date</div>
       <div class="v">${escapeHtml(lastDate)}</div>
-      <div class="sub">Export occasionally for backup</div>
+      <div class="sub">Auto backup runs after saves</div>
     </div>
     <div class="card">
       <div class="k">Avg pain (all exercises)</div>
@@ -397,6 +398,7 @@ async function saveSession(){
   };
 
   await put(STORE_SESSIONS, session);
+  await saveLocalBackup();
   toast("Session saved ✓", "ok");
   clearLoggingInputs();
   await refreshKPIs();
@@ -517,6 +519,7 @@ async function renderHistory(){
       const id = btn.getAttribute("data-del");
       if(!confirm("Delete this session?")) return;
       await deleteSession(id);
+      await saveLocalBackup();
       toast("Deleted", "ok");
       await renderHistory();
       await refreshKPIs();
@@ -527,6 +530,7 @@ async function renderHistory(){
 async function deleteAllSessions(){
   if(!confirm("Delete ALL sessions? This cannot be undone.")) return;
   await clearStore(STORE_SESSIONS);
+  await saveLocalBackup();
   toast("All sessions deleted", "ok");
   await renderHistory();
   await refreshKPIs();
@@ -650,6 +654,7 @@ async function saveConfig(){
   await bulkPut(STORE_CONFIG, rows);
 
   await hydrateFromDB();
+  await saveLocalBackup();
   toast("Config saved ✓", "ok");
 }
 
@@ -664,6 +669,7 @@ async function resetDefaults(){
   });
   await bulkPut(STORE_CONFIG, rows);
   await hydrateFromDB();
+  await saveLocalBackup();
   toast("Defaults restored ✓", "ok");
 }
 
@@ -798,27 +804,82 @@ function wireConfigReorder(){
 
 /* ----------------- Export / Import ----------------- */
 
-async function exportAll(){
+function updateBackupStatus(){
+  const el = $("#backupStatus");
+  const btn = $("#downloadBackupBtn");
+  if(!el) return;
+  const stored = localStorage.getItem(BACKUP_KEY);
+  if(!stored){
+    el.textContent = "No backup yet.";
+    if(btn) btn.disabled = true;
+    return;
+  }
+  let payload;
+  try{ payload = JSON.parse(stored); }
+  catch{
+    el.textContent = "Backup unavailable.";
+    if(btn) btn.disabled = true;
+    return;
+  }
+  const when = payload?.exportedAt ? new Date(payload.exportedAt) : null;
+  el.textContent = when ? `Last backup: ${when.toLocaleString()}` : "Backup saved.";
+  if(btn) btn.disabled = false;
+}
+
+async function buildExportPayload(){
   const config = await getAll(STORE_CONFIG);
   const sessions = await getAll(STORE_SESSIONS);
-
-  const payload = {
+  return {
     schema: 3,
     exportedAt: new Date().toISOString(),
     config,
     sessions
   };
+}
 
+function downloadPayload(payload, prefix){
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `workout-logger-export-${todayISO()}.json`;
+  a.download = `${prefix}-${todayISO()}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+async function exportAll(){
+  const payload = await buildExportPayload();
+  downloadPayload(payload, "workout-logger-export");
   toast("Exported ✓", "ok");
+}
+
+async function saveLocalBackup(){
+  const payload = await buildExportPayload();
+  try{
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(payload));
+    updateBackupStatus();
+  }catch(err){
+    console.error(err);
+    toast("Local backup failed (storage full)", "warn");
+  }
+}
+
+function downloadLatestBackup(){
+  const stored = localStorage.getItem(BACKUP_KEY);
+  if(!stored){
+    toast("No backup yet", "warn");
+    return;
+  }
+  let payload;
+  try{ payload = JSON.parse(stored); }
+  catch{
+    toast("Backup is corrupted", "danger");
+    return;
+  }
+  downloadPayload(payload, "workout-logger-backup");
+  toast("Backup downloaded ✓", "ok");
 }
 
 async function importAll(file){
@@ -843,6 +904,7 @@ async function importAll(file){
   await bulkPut(STORE_SESSIONS, sessions);
 
   await hydrateFromDB();
+  await saveLocalBackup();
   toast("Imported ✓", "ok");
 }
 
@@ -911,6 +973,7 @@ function wireEvents(){
   $("#addRowBtn").addEventListener("click", addConfigRow);
 
   $("#exportBtn").addEventListener("click", exportAll);
+  $("#downloadBackupBtn").addEventListener("click", downloadLatestBackup);
   $("#importFile").addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     if(!file) return;
@@ -930,6 +993,7 @@ function wireEvents(){
     db = await openDB();
     await ensureDefaults();
     await hydrateFromDB();
+    updateBackupStatus();
 
     wireEvents();
     wireLiveSetsDoneAutocalc();
