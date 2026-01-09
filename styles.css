@@ -1,10 +1,267 @@
-body {
-  font-family: system-ui, sans-serif;
-  background: #0b0f19;
-  color: #e5e7eb;
-  margin: 0;
+:root{
+  --bg:#0b0f19; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#38bdf8;
+  --border:#1f2937; --danger:#fb7185; --ok:#34d399; --warn:#fbbf24;
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+  --radius: 16px;
 }
-section { padding: 16px; border-bottom: 1px solid #1f2937; }
-label { display:block; margin-bottom:8px; }
-input, select { width:100%; padding:8px; margin-top:4px; }
-button { padding:10px 14px; margin-top:10px; }
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  background: radial-gradient(1200px 700px at 30% -10%, rgba(56,189,248,.18), transparent 65%),
+              radial-gradient(900px 700px at 80% 0%, rgba(52,211,153,.12), transparent 60%),
+              var(--bg);
+  color:var(--text);
+}
+.muted{color:var(--muted); font-size:13px}
+a{color:var(--accent); text-decoration:none}
+
+.wrap{max-width:980px; margin:0 auto; padding:18px 14px 80px}
+
+.topbar{
+  position:sticky; top:0; z-index:50;
+  backdrop-filter: blur(10px);
+  background: rgba(11,15,25,.75);
+  border-bottom:1px solid rgba(31,41,55,.7);
+}
+.topbar-inner{
+  max-width:980px; margin:0 auto; padding:12px 14px;
+  display:flex; gap:10px; align-items:center; justify-content:space-between;
+  flex-wrap:wrap;
+}
+.brand{display:flex; gap:10px; align-items:center}
+.dot{width:10px; height:10px; border-radius:999px; background:var(--accent); box-shadow:0 0 18px rgba(56,189,248,.7)}
+.brand h1{font-size:15px; margin:0; letter-spacing:.2px}
+
+.tabs{display:flex; gap:8px; flex-wrap:wrap}
+.tab{
+  border:1px solid rgba(31,41,55,.9);
+  background: rgba(17,24,39,.55);
+  color: var(--text);
+  padding:9px 12px; border-radius:999px;
+  font-weight:700; font-size:13px;
+  cursor:pointer;
+}
+.tab.active{border-color: rgba(56,189,248,.7); box-shadow: 0 0 0 3px rgba(56,189,248,.12)}
+
+.actions{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+
+.btn{
+  border:1px solid rgba(31,41,55,.9);
+  background: rgba(17,24,39,.7);
+  color: var(--text);
+  padding:9px 12px; border-radius:12px;
+  font-weight:800; font-size:13px;
+  cursor:pointer;
+}
+.btn.primary{border-color: rgba(56,189,248,.7); background: rgba(56,189,248,.12)}
+.btn.ok{border-color: rgba(52,211,153,.7); background: rgba(52,211,153,.10)}
+.btn.danger{border-color: rgba(251,113,133,.7); background: rgba(251,113,133,.10)}
+.btn.small{padding:7px 10px; font-size:12px; border-radius:10px}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+
+.card{
+  background: rgba(17,24,39,.78);
+  border:1px solid rgba(31,41,55,.9);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  padding: 14px;
+}
+
+.grid{display:grid; gap:12px}
+@media (min-width:800px){
+  .grid.cols2{grid-template-columns: 1.1fr .9fr}
+}
+
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:end}
+.row.between{justify-content:space-between; align-items:center}
+.right{display:flex; justify-content:flex-end}
+
+.field{flex:1; min-width:220px}
+label{display:block; font-size:12px; color: #94a3b8; margin-bottom:6px; font-weight:800; letter-spacing:.15px}
+input, select, textarea{
+  width:100%;
+  border-radius:12px;
+  border:1px solid rgba(31,41,55,.9);
+  background: rgba(3,7,18,.55);
+  color: #e5e7eb;
+  padding: 11px 12px;
+  outline:none;
+  font-size:14px;
+}
+input:focus, select:focus, textarea:focus{border-color: rgba(56,189,248,.7); box-shadow: 0 0 0 3px rgba(56,189,248,.14)}
+textarea{min-height:44px; resize:vertical}
+
+.h2{margin:0 0 10px; font-size:16px}
+.sub{margin-top:6px; color:#94a3b8; font-size:12px}
+.divider{height:1px; background: rgba(31,41,55,.9); margin:12px 0}
+
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:12px; font-weight:900;
+  padding:6px 10px; border-radius:999px;
+  border:1px solid rgba(31,41,55,.9);
+  background: rgba(3,7,18,.35);
+  color: #e5e7eb;
+}
+.pill.ok{border-color: rgba(52,211,153,.7); background: rgba(52,211,153,.10)}
+.pill.warn{border-color: rgba(251,191,36,.7); background: rgba(251,191,36,.10)}
+.pill.danger{border-color: rgba(251,113,133,.7); background: rgba(251,113,133,.10)}
+
+.exercise-card{
+  padding:12px;
+  border-radius: 16px;
+  border:1px solid rgba(31,41,55,.9);
+  background: rgba(3,7,18,.35);
+  display:grid;
+  gap:10px;
+}
+
+.ex-top{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+.ex-name{font-weight:1000; letter-spacing:.2px}
+.ex-meta{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+.small{font-size:12px}
+
+.ex-grid{display:grid; gap:10px}
+@media (min-width:800px){
+  .ex-grid{grid-template-columns: 1fr 1fr 1fr}
+}
+
+/* reps grid */
+.reps-grid{
+  display:grid;
+  gap:8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (min-width:800px){
+  .reps-grid{grid-template-columns: repeat(6, minmax(0, 1fr));}
+}
+.rep-cell{
+  display:grid;
+  gap:6px;
+  padding:10px;
+  border-radius:14px;
+  border:1px solid rgba(31,41,55,.85);
+  background: rgba(17,24,39,.35);
+}
+.rep-cell .rep-label{
+  font-size:11px;
+  font-weight:1000;
+  color: #94a3b8;
+  letter-spacing:.15px;
+}
+.rep-cell input{
+  padding:10px 10px;
+  border-radius:12px;
+  text-align:center;
+  font-weight:1000;
+  font-size:14px;
+}
+
+/* Config table */
+.table-wrap{overflow:auto}
+table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:16px; border:1px solid rgba(31,41,55,.9)}
+th, td{padding:10px 10px; border-bottom:1px solid rgba(31,41,55,.7); vertical-align:top}
+th{background: rgba(3,7,18,.45); color: #94a3b8; text-align:left; font-size:12px; letter-spacing:.15px}
+tr:last-child td{border-bottom:none}
+td .btn{width:auto}
+
+.w-move{min-width:110px}
+.w-workout{min-width:190px}
+.w-num{min-width:90px}
+.w-type{min-width:120px}
+.w-actions{min-width:90px}
+
+.movebox{
+  display:flex;
+  gap:6px;
+  align-items:center;
+}
+.handle{
+  user-select:none;
+  cursor:grab;
+  padding:6px 8px;
+  border-radius:10px;
+  border:1px solid rgba(31,41,55,.9);
+  background: rgba(17,24,39,.45);
+  font-weight:900;
+}
+.handle:active{cursor:grabbing}
+.updown{
+  display:flex;
+  gap:6px;
+}
+tr.dragging{
+  opacity:.65;
+  outline:2px dashed rgba(56,189,248,.6);
+  outline-offset:-6px;
+}
+
+/* Toast */
+.toast{
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: 18px; z-index:100;
+  background: rgba(17,24,39,.92);
+  border:1px solid rgba(31,41,55,.9);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  padding: 10px 12px;
+  border-radius: 999px;
+  display:none;
+  gap:8px;
+  align-items:center;
+  font-weight:1000;
+  max-width: calc(100% - 20px);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.toast.show{display:flex}
+
+.tips{margin:10px 0 0; padding-left:18px; line-height:1.6}
+
+.kpi{display:flex; gap:10px; flex-wrap:wrap}
+.kpi .card{flex:1; min-width:220px; background: rgba(3,7,18,.35); box-shadow:none}
+.k{font-size:12px; color:#94a3b8; font-weight:900}
+.v{font-size:22px; font-weight:1100; margin-top:4px}
+
+
+/* --- iPhone-friendly Config table readability --- */
+#configTable td:nth-child(2), #configTable th:nth-child(2){ /* Exercise */
+  min-width: 240px;
+}
+#configTable td:nth-child(8), #configTable th:nth-child(8){ /* Progress Rule */
+  min-width: 320px;
+}
+#configTable td:nth-child(3), #configTable th:nth-child(3){ /* Workout */
+  min-width: 220px;
+}
+#configTable td:nth-child(4), #configTable th:nth-child(4),
+#configTable td:nth-child(5), #configTable th:nth-child(5),
+#configTable td:nth-child(6), #configTable th:nth-child(6),
+#configTable td:nth-child(9), #configTable th:nth-child(9){
+  min-width: 110px; /* numeric cols incl Rest */
+}
+
+#configTable input, #configTable select, #configTable textarea{
+  font-size: 16px;          /* prevents iOS zoom + increases readability */
+  padding: 12px 12px;
+  border-radius: 12px;
+  line-height: 1.2;
+}
+
+#configTable textarea{
+  min-height: 56px;
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
+.table-wrap{
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 520px){
+  .wrap{padding-left: 10px; padding-right: 10px;}
+  .card{padding: 12px;}
+  th, td{padding: 10px 8px;}
+}

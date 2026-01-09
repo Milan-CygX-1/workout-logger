@@ -3,48 +3,178 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Workout Logger</title>
+  <title>Workout Logger (Local)</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="topbar">
     <div class="topbar-inner">
-      <h1>Workout Logger</h1>
+      <div class="brand">
+        <div class="dot"></div>
+        <h1>Workout Logger <span class="muted">· local (IndexedDB)</span></h1>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="log" role="tab" aria-selected="true">Logging</button>
+        <button class="tab" data-tab="config" role="tab" aria-selected="false">Config</button>
+        <button class="tab" data-tab="history" role="tab" aria-selected="false">History</button>
+      </div>
+
       <div class="actions">
-        <button id="exportBtn">Export</button>
-        <label for="importFile">Import</label>
-        <input id="importFile" type="file" accept="application/json" hidden>
+        <button class="btn" id="exportBtn">Export</button>
+        <label class="btn" for="importFile" style="cursor:pointer">Import</label>
+        <input id="importFile" type="file" accept="application/json" style="display:none" />
       </div>
     </div>
   </div>
 
-  <main>
-    <section>
-      <h2>Logging</h2>
-      <label>Date <input type="date" id="logDate"></label>
-      <label>Workout <select id="workoutType"></select></label>
-      <div id="exerciseList"></div>
-      <button id="saveSessionBtn">Save Session</button>
+  <div class="wrap">
+    <!-- LOGGING PAGE -->
+    <section id="page-log" class="grid cols2" style="margin-top:14px">
+      <div class="card">
+        <div class="row between">
+          <h2 class="h2">Today’s workout logger</h2>
+          <span id="dbStatus" class="pill warn">Loading…</span>
+        </div>
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label for="logDate">Date</label>
+            <input id="logDate" type="date" />
+            <div class="sub">Pick any date.</div>
+          </div>
+
+          <div class="field">
+            <label for="workoutType">Workout type</label>
+            <select id="workoutType"></select>
+            <div class="sub">Changing this re-renders the exercise log layout.</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field" style="flex: 1 1 100%">
+            <label for="sessionComment">Session comment</label>
+            <textarea id="sessionComment" placeholder="How did it feel? Anything notable?"></textarea>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row between">
+          <div class="muted">Exercises for selected workout</div>
+          <div class="right" style="gap:8px">
+            <button class="btn" id="clearFormBtn" title="Clears inputs (does not delete history)">Clear form</button>
+            <button class="btn ok" id="saveSessionBtn">Save session</button>
+          </div>
+        </div>
+
+        <div id="exerciseList" class="grid" style="margin-top:12px"></div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2 class="h2">Quick tips</h2>
+          <div class="muted">
+            <ul class="tips">
+              <li><b>Reps grid</b>: enter reps per set (Set 1…Set N). Leave blank if you didn’t do that set.</li>
+              <li><b>Sets done</b>: auto-calculated live from filled rep cells. If you type it manually, it won’t be overwritten until you clear it.</li>
+              <li><b>Pain</b>: 0–5 where 0 = none, 5 = stop-worthy.</li>
+              <li><b>Rest</b>: minutes (e.g. 2.5). Defaults come from config; you can override.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="h2">Data & privacy</h2>
+          <div class="muted" style="line-height:1.6">
+            Data is stored locally in <b>IndexedDB</b> in this browser. Use <b>Export</b> occasionally to back up.
+            Import restores config + sessions.
+            <div class="divider"></div>
+            <div class="kpi" id="kpis"></div>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section>
-      <h2>Config</h2>
-      <table id="configTable">
-        <thead>
-          <tr>
-            <th>Exercise</th><th>Workout</th><th>Sets</th><th>Rep Low</th><th>Rep High</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <button id="saveConfigBtn">Save Config</button>
+    <!-- CONFIG PAGE -->
+    <section id="page-config" style="display:none; margin-top:14px">
+      <div class="card">
+        <div class="row between">
+          <h2 class="h2">Config</h2>
+          <div class="right" style="gap:8px">
+            <button class="btn" id="addRowBtn">Add row</button>
+            <button class="btn primary" id="saveConfigBtn">Save config</button>
+            <button class="btn danger" id="resetDefaultsBtn">Reset defaults</button>
+          </div>
+        </div>
+
+        <div class="sub">
+          Reorder exercises with <b>↑ / ↓</b> on iPhone, or drag via the handle on desktop.
+          Order here is the order used on the Logging page.
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="table-wrap">
+          <table id="configTable">
+            <thead>
+              <tr>
+                <th class="w-move">Move</th>
+                <th>Exercise</th>
+                <th class="w-workout">Workout</th>
+                <th class="w-num">Sets</th>
+                <th class="w-num">RepLow</th>
+                <th class="w-num">RepHigh</th>
+                <th class="w-type">Type</th>
+                <th>Progress Rule</th>
+                <th class="w-num">Rest (min)</th>
+                <th class="w-actions"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="sub" style="margin-top:10px">
+          Tip: Use consistent workout names (e.g. “Workout 1 – Full Body”) so grouping behaves as expected.
+        </div>
+      </div>
     </section>
 
-    <section>
-      <h2>History</h2>
-      <div id="historyList"></div>
+    <!-- HISTORY PAGE -->
+    <section id="page-history" style="display:none; margin-top:14px">
+      <div class="card">
+        <div class="row between">
+          <h2 class="h2">History</h2>
+          <div class="right" style="gap:8px">
+            <button class="btn" id="refreshHistoryBtn">Refresh</button>
+            <button class="btn danger" id="deleteAllBtn" title="Deletes all sessions (config kept)">Delete all sessions</button>
+          </div>
+        </div>
+        <div class="sub">All saved sessions from the Logging page.</div>
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="field">
+            <label for="historyFilterWorkout">Filter by workout</label>
+            <select id="historyFilterWorkout"></select>
+          </div>
+          <div class="field">
+            <label for="historySearch">Search (exercise/comment)</label>
+            <input id="historySearch" type="text" placeholder="e.g. pull-up, knee, AMRAP" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div id="historyList" class="grid" style="gap:12px"></div>
+      </div>
     </section>
-  </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>
