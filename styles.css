@@ -242,16 +242,13 @@ tr.dragging{
 #configTable td:nth-child(2), #configTable th:nth-child(2){ /* Exercise */
   min-width: 240px;
 }
-#configTable td:nth-child(8), #configTable th:nth-child(8){ /* Progress Rule */
-  min-width: 320px;
-}
 #configTable td:nth-child(3), #configTable th:nth-child(3){ /* Workout */
   min-width: 220px;
 }
 #configTable td:nth-child(4), #configTable th:nth-child(4),
 #configTable td:nth-child(5), #configTable th:nth-child(5),
 #configTable td:nth-child(6), #configTable th:nth-child(6),
-#configTable td:nth-child(9), #configTable th:nth-child(9){
+#configTable td:nth-child(8), #configTable th:nth-child(8){
   min-width: 110px; /* numeric cols incl Rest */
 }
 
