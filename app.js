@@ -695,6 +695,35 @@ function addConfigRow(){
   renderConfigTable();
 }
 
+function nextWorkoutName(){
+  const base = "New Workout";
+  const existing = new Set(uniqueWorkouts(configRows));
+  let name = base;
+  let counter = 1;
+  while(existing.has(name)){
+    counter += 1;
+    name = `${base} ${counter}`;
+  }
+  return name;
+}
+
+function addWorkoutGroup(){
+  const workout = nextWorkoutName();
+  configRows.push({
+    id: uid(),
+    exercise:"",
+    workout,
+    sets: 1,
+    repLow: null,
+    repHigh: null,
+    type: "Rep Range",
+    restMin: null,
+    sortOrder: 1
+  });
+
+  renderConfigTable();
+}
+
 /* Reorder helpers */
 
 function getWorkoutValueFromRow(tr){
@@ -1011,6 +1040,7 @@ function wireEvents(){
   $("#saveConfigBtn").addEventListener("click", saveConfig);
   $("#resetDefaultsBtn").addEventListener("click", resetDefaults);
   $("#addRowBtn").addEventListener("click", addConfigRow);
+  $("#addWorkoutBtn").addEventListener("click", addWorkoutGroup);
 
   $("#exportBtn").addEventListener("click", exportAll);
   $("#downloadBackupBtn").addEventListener("click", downloadLatestBackup);
