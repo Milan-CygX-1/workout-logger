@@ -568,13 +568,21 @@ function renderConfigTable(){
   const tbody = $("#configTable tbody");
 
   const byWorkout = new Map();
+  const workoutOrder = new Map();
+  let nextOrder = 1;
   for(const r of configRows){
     const w = (r.workout||"").trim();
     if(!byWorkout.has(w)) byWorkout.set(w, []);
     byWorkout.get(w).push(r);
+    if(!workoutOrder.has(w)){
+      const orderValue = Number.isFinite(r.workoutOrder) ? r.workoutOrder : nextOrder;
+      workoutOrder.set(w, orderValue);
+      nextOrder = Math.max(nextOrder, orderValue + 1);
+    }
   }
 
-  const workoutList = Array.from(byWorkout.keys()).sort();
+  const workoutList = Array.from(byWorkout.keys())
+    .sort((a,b) => (workoutOrder.get(a) ?? 0) - (workoutOrder.get(b) ?? 0));
   const htmlParts = [];
 
   for(const w of workoutList){
@@ -586,6 +594,13 @@ function renderConfigTable(){
       <tr class="workout-header" data-workout-header="${escapeHtml(w)}">
         <td colspan="8" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
           <div class="workout-header-row">
+            <div class="movebox">
+              <span class="handle workout-handle" title="Drag to reorder workouts">≡</span>
+              <div class="updown">
+                <button class="btn small moveWorkoutUp" type="button" title="Move workout up">↑</button>
+                <button class="btn small moveWorkoutDown" type="button" title="Move workout down">↓</button>
+              </div>
+            </div>
             <span class="workout-header-label">Workout</span>
             <input
               class="workout-name-input"
@@ -594,6 +609,7 @@ function renderConfigTable(){
               placeholder="Workout name"
             />
             <span class="muted" style="font-weight:800;">(reorder within this workout)</span>
+            <button class="btn danger small deleteWorkoutBtn" type="button">Delete workout</button>
           </div>
         </td>
       </tr>
@@ -609,6 +625,8 @@ function readConfigFromTable(){
   const trs = Array.from($("#configTable tbody").querySelectorAll("tr"));
   const out = [];
   const counters = new Map();
+  let workoutIndex = 0;
+  let currentWorkoutOrder = 0;
   let currentWorkout = "";
 
   for(const tr of trs){
@@ -616,6 +634,8 @@ function readConfigFromTable(){
       const headerInput = tr.querySelector("input[data-workout-name]");
       const headerValue = (headerInput?.value || tr.getAttribute("data-workout-header") || "").trim();
       currentWorkout = headerValue || "Workout";
+      workoutIndex += 1;
+      currentWorkoutOrder = workoutIndex;
       continue;
     }
 
@@ -643,6 +663,7 @@ function readConfigFromTable(){
     const n = (counters.get(w) || 0) + 1;
     counters.set(w, n);
     obj.sortOrder = n;
+    obj.workoutOrder = currentWorkoutOrder;
 
     out.push(obj);
   }
@@ -709,6 +730,10 @@ function nextWorkoutName(){
 
 function addWorkoutGroup(){
   const workout = nextWorkoutName();
+  const maxOrder = Math.max(
+    0,
+    ...configRows.map(r => Number(r.workoutOrder || 0))
+  );
   configRows.push({
     id: uid(),
     exercise:"",
@@ -718,7 +743,8 @@ function addWorkoutGroup(){
     repHigh: null,
     type: "Rep Range",
     restMin: null,
-    sortOrder: 1
+    sortOrder: 1,
+    workoutOrder: maxOrder + 1
   });
 
   renderConfigTable();
@@ -758,12 +784,65 @@ function moveRow(tr, direction){
   }
 }
 
+function getWorkoutHeaders(tbody){
+  return Array.from(tbody.querySelectorAll("tr[data-workout-header]"));
+}
+
+function getWorkoutGroupRows(headerRow){
+  const group = [headerRow];
+  let row = headerRow.nextElementSibling;
+  while(row && !row.hasAttribute("data-workout-header")){
+    group.push(row);
+    row = row.nextElementSibling;
+  }
+  return group;
+}
+
+function moveWorkoutGroup(headerRow, direction){
+  const tbody = headerRow.parentElement;
+  const headers = getWorkoutHeaders(tbody);
+  const idx = headers.indexOf(headerRow);
+  if(idx === -1) return;
+  const targetIdx = direction < 0 ? idx - 1 : idx + 1;
+  if(targetIdx < 0 || targetIdx >= headers.length) return;
+
+  const targetHeader = headers[targetIdx];
+  const group = getWorkoutGroupRows(headerRow);
+  const targetGroup = getWorkoutGroupRows(targetHeader);
+
+  if(direction < 0){
+    const insertBefore = targetGroup[0];
+    group.forEach(row => tbody.insertBefore(row, insertBefore));
+  } else {
+    const insertBefore = targetGroup[targetGroup.length - 1].nextSibling;
+    group.forEach(row => tbody.insertBefore(row, insertBefore));
+  }
+
+  updateWorkoutOrderFromDOM(tbody);
+}
+
+function updateWorkoutOrderFromDOM(tbody){
+  const headers = getWorkoutHeaders(tbody);
+  headers.forEach((header, index) => {
+    const workout = header.getAttribute("data-workout-header") || "";
+    const order = index + 1;
+    configRows.forEach(row => {
+      if((row.workout || "").trim() === workout){
+        row.workoutOrder = order;
+      }
+    });
+  });
+}
+
 function wireConfigReorder(){
   const tbody = $("#configTable tbody");
   let dragSrc = null;
   let dragPointerId = null;
   let dragHandle = null;
   let lastTarget = null;
+  let dragWorkoutHeader = null;
+  let dragWorkoutPointerId = null;
+  let dragWorkoutHandle = null;
 
   const clearDrag = () => {
     if(!dragSrc) return;
@@ -778,6 +857,18 @@ function wireConfigReorder(){
     lastTarget = null;
   };
 
+  const clearWorkoutDrag = () => {
+    if(!dragWorkoutHeader) return;
+    dragWorkoutHeader.classList.remove("dragging");
+    tbody.classList.remove("is-dragging");
+    if(dragWorkoutHandle && dragWorkoutPointerId !== null){
+      try{ dragWorkoutHandle.releasePointerCapture(dragWorkoutPointerId); } catch{}
+    }
+    dragWorkoutHeader = null;
+    dragWorkoutPointerId = null;
+    dragWorkoutHandle = null;
+  };
+
   tbody.addEventListener("click", (e) => {
     const up = e.target.closest(".moveUp");
     const down = e.target.closest(".moveDown");
@@ -787,6 +878,16 @@ function wireConfigReorder(){
     if(!tr || tr.hasAttribute("data-workout-header")) return;
 
     moveRow(tr, up ? -1 : +1);
+  });
+
+  tbody.addEventListener("click", (e) => {
+    const up = e.target.closest(".moveWorkoutUp");
+    const down = e.target.closest(".moveWorkoutDown");
+    if(!up && !down) return;
+
+    const headerRow = e.target.closest("tr[data-workout-header]");
+    if(!headerRow) return;
+    moveWorkoutGroup(headerRow, up ? -1 : +1);
   });
 
   tbody.addEventListener("input", (e) => {
@@ -815,9 +916,37 @@ function wireConfigReorder(){
     tr.remove();
   });
 
+  tbody.addEventListener("click", (e) => {
+    const delWorkout = e.target.closest(".deleteWorkoutBtn");
+    if(!delWorkout) return;
+    const headerRow = delWorkout.closest("tr");
+    if(!headerRow || !headerRow.hasAttribute("data-workout-header")) return;
+    const workoutName = headerRow.getAttribute("data-workout-header") || "this workout";
+    if(!confirm(`Delete "${workoutName}" and all its exercises?`)) return;
+    let row = headerRow.nextElementSibling;
+    while(row && !row.hasAttribute("data-workout-header")){
+      const next = row.nextElementSibling;
+      row.remove();
+      row = next;
+    }
+    headerRow.remove();
+  });
+
   tbody.addEventListener("pointerdown", (e) => {
     const handle = e.target.closest(".handle");
     if(!handle) return;
+    if(handle.classList.contains("workout-handle")){
+      const headerRow = handle.closest("tr[data-workout-header]");
+      if(!headerRow) return;
+      dragWorkoutHeader = headerRow;
+      dragWorkoutHandle = handle;
+      dragWorkoutPointerId = e.pointerId;
+      headerRow.classList.add("dragging");
+      tbody.classList.add("is-dragging");
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      return;
+    }
     const tr = handle.closest("tr");
     if(!tr || tr.hasAttribute("data-workout-header")) return;
     dragSrc = tr;
@@ -831,6 +960,25 @@ function wireConfigReorder(){
   });
 
   tbody.addEventListener("pointermove", (e) => {
+    if(dragWorkoutHeader && e.pointerId === dragWorkoutPointerId){
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const targetHeader = el?.closest("tr[data-workout-header]");
+      if(!targetHeader || targetHeader === dragWorkoutHeader) return;
+
+      const rect = targetHeader.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      const group = getWorkoutGroupRows(dragWorkoutHeader);
+      const tbody = targetHeader.parentElement;
+
+      if(before){
+        group.forEach(row => tbody.insertBefore(row, targetHeader));
+      } else {
+        const targetGroup = getWorkoutGroupRows(targetHeader);
+        const insertBefore = targetGroup[targetGroup.length - 1].nextSibling;
+        group.forEach(row => tbody.insertBefore(row, insertBefore));
+      }
+      return;
+    }
     if(!dragSrc || e.pointerId !== dragPointerId) return;
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const targetTr = el?.closest("tr");
@@ -854,6 +1002,11 @@ function wireConfigReorder(){
   });
 
   tbody.addEventListener("pointerup", (e) => {
+    if(dragWorkoutHeader && e.pointerId === dragWorkoutPointerId){
+      updateWorkoutOrderFromDOM(tbody);
+      clearWorkoutDrag();
+      return;
+    }
     if(!dragSrc || e.pointerId !== dragPointerId) return;
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const targetTr = el?.closest("tr") || lastTarget;
@@ -868,6 +1021,7 @@ function wireConfigReorder(){
   });
 
   tbody.addEventListener("pointercancel", (e) => {
+    if(dragWorkoutHeader && e.pointerId === dragWorkoutPointerId) clearWorkoutDrag();
     if(dragSrc && e.pointerId === dragPointerId) clearDrag();
   });
 }
