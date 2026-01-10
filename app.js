@@ -940,6 +940,7 @@ function wireConfigReorder(){
     if(!tr || tr.hasAttribute("data-workout-header")) return;
     if(!confirm("Delete this config row?")) return;
     tr.remove();
+    configRows = readConfigFromTable();
   });
 
   tbody.addEventListener("click", (e) => {
@@ -956,6 +957,7 @@ function wireConfigReorder(){
       row = next;
     }
     headerRow.remove();
+    configRows = readConfigFromTable();
   });
 
   tbody.addEventListener("pointerdown", (e) => {
