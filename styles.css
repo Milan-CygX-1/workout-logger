@@ -271,6 +271,9 @@ tr.dragging{
   align-items:center;
   gap:10px;
 }
+.workout-header-row .deleteWorkoutBtn{
+  margin-left: auto;
+}
 .workout-header-label{
   text-transform:uppercase;
   font-size:11px;
