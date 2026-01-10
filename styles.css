@@ -193,6 +193,7 @@ td .btn{width:auto}
 .handle{
   user-select:none;
   cursor:grab;
+  touch-action:none;
   padding:6px 8px;
   border-radius:10px;
   border:1px solid rgba(31,41,55,.9);
@@ -208,6 +209,9 @@ tr.dragging{
   opacity:.65;
   outline:2px dashed rgba(56,189,248,.6);
   outline-offset:-6px;
+}
+.is-dragging{
+  user-select:none;
 }
 
 /* Toast */

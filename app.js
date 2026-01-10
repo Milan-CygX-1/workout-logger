@@ -542,7 +542,7 @@ function configRowHTML(r){
     .map(t => `<option value="${t}" ${t===r.type?"selected":""}>${t}</option>`).join("");
 
   return `
-    <tr data-id="${escapeHtml(r.id)}" draggable="true">
+    <tr data-id="${escapeHtml(r.id)}">
       <td class="w-move">
         <div class="movebox">
           <span class="handle" title="Drag to reorder (desktop)">≡</span>
@@ -731,6 +731,22 @@ function moveRow(tr, direction){
 function wireConfigReorder(){
   const tbody = $("#configTable tbody");
   let dragSrc = null;
+  let dragPointerId = null;
+  let dragHandle = null;
+  let lastTarget = null;
+
+  const clearDrag = () => {
+    if(!dragSrc) return;
+    dragSrc.classList.remove("dragging");
+    tbody.classList.remove("is-dragging");
+    if(dragHandle && dragPointerId !== null){
+      try{ dragHandle.releasePointerCapture(dragPointerId); } catch{}
+    }
+    dragSrc = null;
+    dragPointerId = null;
+    dragHandle = null;
+    lastTarget = null;
+  };
 
   tbody.addEventListener("click", (e) => {
     const up = e.target.closest(".moveUp");
@@ -752,51 +768,60 @@ function wireConfigReorder(){
     tr.remove();
   });
 
-  tbody.addEventListener("dragstart", (e) => {
+  tbody.addEventListener("pointerdown", (e) => {
     const handle = e.target.closest(".handle");
-    const tr = e.target.closest("tr");
-    if(!handle || !tr || tr.hasAttribute("data-workout-header")){
-      e.preventDefault();
-      return;
-    }
+    if(!handle) return;
+    const tr = handle.closest("tr");
+    if(!tr || tr.hasAttribute("data-workout-header")) return;
     dragSrc = tr;
+    dragHandle = handle;
+    dragPointerId = e.pointerId;
+    lastTarget = null;
     tr.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", tr.getAttribute("data-id") || "");
-  });
-
-  tbody.addEventListener("dragend", () => {
-    if(dragSrc) dragSrc.classList.remove("dragging");
-    dragSrc = null;
-  });
-
-  tbody.addEventListener("dragover", (e) => {
-    if(!dragSrc) return;
+    tbody.classList.add("is-dragging");
+    handle.setPointerCapture(e.pointerId);
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
   });
 
-  tbody.addEventListener("drop", (e) => {
-    if(!dragSrc) return;
-    e.preventDefault();
-
-    const targetTr = e.target.closest("tr");
+  tbody.addEventListener("pointermove", (e) => {
+    if(!dragSrc || e.pointerId !== dragPointerId) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const targetTr = el?.closest("tr");
     if(!targetTr || targetTr === dragSrc) return;
     if(targetTr.hasAttribute("data-workout-header")) return;
 
     const srcW = getWorkoutValueFromRow(dragSrc);
     const tgtW = getWorkoutValueFromRow(targetTr);
     if(srcW !== tgtW){
-      toast("Drag only within the same workout group (use workout field to change group).", "warn");
+      lastTarget = targetTr;
       return;
     }
 
+    lastTarget = targetTr;
     const rect = targetTr.getBoundingClientRect();
     const before = (e.clientY - rect.top) < rect.height / 2;
     const tbody = targetTr.parentElement;
 
     if(before) tbody.insertBefore(dragSrc, targetTr);
     else tbody.insertBefore(dragSrc, targetTr.nextSibling);
+  });
+
+  tbody.addEventListener("pointerup", (e) => {
+    if(!dragSrc || e.pointerId !== dragPointerId) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const targetTr = el?.closest("tr") || lastTarget;
+    if(targetTr && !targetTr.hasAttribute("data-workout-header")){
+      const srcW = getWorkoutValueFromRow(dragSrc);
+      const tgtW = getWorkoutValueFromRow(targetTr);
+      if(srcW !== tgtW){
+        toast("Drag only within the same workout group (use workout field to change group).", "warn");
+      }
+    }
+    clearDrag();
+  });
+
+  tbody.addEventListener("pointercancel", (e) => {
+    if(dragSrc && e.pointerId === dragPointerId) clearDrag();
   });
 }
 
