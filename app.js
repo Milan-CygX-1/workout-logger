@@ -24,27 +24,27 @@ let workoutTypes = [];
 
 const DEFAULT_CONFIG = [
   // Workout 1 – Full Body
-  { exercise:"Pull-up", workout:"Workout 1 – Full Body", sets:5, repLow:2, repHigh:2, type:"Strength", progressRule:"Strength progression ladder (5x2 → 6x2 → 4x3 …). Increase when easy 2 sessions in a row.", restMin:5 },
-  { exercise:"Lunge", workout:"Workout 1 – Full Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", progressRule:"Add reps / corridor lengths over time.", restMin:5 },
-  { exercise:"Push-up", workout:"Workout 1 – Full Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", progressRule:"Hit top across sets 2 sessions → add load (2.5–5kg).", restMin:5 },
-  { exercise:"Glute Bridge", workout:"Workout 1 – Full Body", sets:3, repLow:6, repHigh:20, type:"Rep Range", progressRule:"Progress reps hard; aim toward 30 across sets over time.", restMin:5 },
-  { exercise:"TRX Lateral Raise", workout:"Workout 1 – Full Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", progressRule:"Hit top across sets 2 sessions → shorten TRX.", restMin:3 },
-  { exercise:"Calf Raise", workout:"Workout 1 – Full Body", sets:2, repLow:6, repHigh:30, type:"Rep Range", progressRule:"Hit top across sets → add ~5kg.", restMin:3 },
-  { exercise:"TRX Crunch", workout:"Workout 1 – Full Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", progressRule:"Try to do more each session.", restMin:3 },
+  { exercise:"Pull-up", workout:"Workout 1 – Full Body", sets:5, repLow:2, repHigh:2, type:"Strength", restMin:5 },
+  { exercise:"Lunge", workout:"Workout 1 – Full Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", restMin:5 },
+  { exercise:"Push-up", workout:"Workout 1 – Full Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", restMin:5 },
+  { exercise:"Glute Bridge", workout:"Workout 1 – Full Body", sets:3, repLow:6, repHigh:20, type:"Rep Range", restMin:5 },
+  { exercise:"TRX Lateral Raise", workout:"Workout 1 – Full Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", restMin:3 },
+  { exercise:"Calf Raise", workout:"Workout 1 – Full Body", sets:2, repLow:6, repHigh:30, type:"Rep Range", restMin:3 },
+  { exercise:"TRX Crunch", workout:"Workout 1 – Full Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", restMin:3 },
 
   // Workout 2 – Upper Body
-  { exercise:"Pull-up", workout:"Workout 2 – Upper Body", sets:5, repLow:2, repHigh:2, type:"Strength", progressRule:"Same strength progression as above.", restMin:5 },
-  { exercise:"Push-up", workout:"Workout 2 – Upper Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", progressRule:"Top range 2 sessions → add load.", restMin:5 },
-  { exercise:"TRX Row", workout:"Workout 2 – Upper Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", progressRule:"Top range 2 sessions → shorten TRX.", restMin:5 },
-  { exercise:"TRX Bicep Curl", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", progressRule:"Top range 2 sessions → shorten TRX.", restMin:3 },
-  { exercise:"TRX Triceps Extension", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", progressRule:"Top range 2 sessions → shorten TRX.", restMin:3 },
-  { exercise:"TRX Lateral Raise", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", progressRule:"Top range 2 sessions → shorten TRX.", restMin:3 },
+  { exercise:"Pull-up", workout:"Workout 2 – Upper Body", sets:5, repLow:2, repHigh:2, type:"Strength", restMin:5 },
+  { exercise:"Push-up", workout:"Workout 2 – Upper Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", restMin:5 },
+  { exercise:"TRX Row", workout:"Workout 2 – Upper Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", restMin:5 },
+  { exercise:"TRX Bicep Curl", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", restMin:3 },
+  { exercise:"TRX Triceps Extension", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", restMin:3 },
+  { exercise:"TRX Lateral Raise", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", restMin:3 },
 
   // Workout 3 – Lower Body
-  { exercise:"Lunge", workout:"Workout 3 – Lower Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", progressRule:"Add reps / corridor lengths over time.", restMin:5 },
-  { exercise:"Glute Bridge", workout:"Workout 3 – Lower Body", sets:3, repLow:6, repHigh:20, type:"Rep Range", progressRule:"Progress reps hard; aim toward 30 across sets over time.", restMin:5 },
-  { exercise:"Calf Raise", workout:"Workout 3 – Lower Body", sets:2, repLow:6, repHigh:30, type:"Rep Range", progressRule:"Hit top across sets → add ~5kg.", restMin:3 },
-  { exercise:"TRX Crunch", workout:"Workout 3 – Lower Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", progressRule:"Always try to do more each session.", restMin:3 },
+  { exercise:"Lunge", workout:"Workout 3 – Lower Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", restMin:5 },
+  { exercise:"Glute Bridge", workout:"Workout 3 – Lower Body", sets:3, repLow:6, repHigh:20, type:"Rep Range", restMin:5 },
+  { exercise:"Calf Raise", workout:"Workout 3 – Lower Body", sets:2, repLow:6, repHigh:30, type:"Rep Range", restMin:3 },
+  { exercise:"TRX Crunch", workout:"Workout 3 – Lower Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", restMin:3 },
 ];
 
 /* ----------------- Utils ----------------- */
@@ -271,7 +271,6 @@ function renderExerciseList(){
           <div>
             <div class="ex-name">${escapeHtml(r.exercise)}</div>
             <div class="muted small">Target: <b>${escapeHtml(target)}</b></div>
-            <div class="muted small">Progress: ${escapeHtml(r.progressRule || "")}</div>
           </div>
           <div class="ex-meta">
             <span class="pill">${escapeHtml(r.type || "")}</span>
@@ -560,7 +559,6 @@ function configRowHTML(r){
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.repLow ?? "")}" data-field="repLow" /></td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.repHigh ?? "")}" data-field="repHigh" /></td>
       <td class="w-type"><select data-field="type">${typeOptions}</select></td>
-      <td><textarea rows="2" data-field="progressRule">${escapeHtml(r.progressRule ?? "")}</textarea></td>
       <td class="w-num"><input inputmode="decimal" value="${escapeHtml(r.restMin ?? "")}" data-field="restMin" /></td>
       <td class="w-actions"><button class="btn danger small deleteRowBtn" type="button">Delete</button></td>
     </tr>
@@ -597,7 +595,7 @@ function renderConfigTable(){
 
     htmlParts.push(`
       <tr class="workout-header" data-workout-header="${escapeHtml(w)}">
-        <td colspan="10" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
+        <td colspan="9" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
           ${escapeHtml(w)}
           <span class="muted" style="font-weight:800; margin-left:10px;">(reorder within this workout)</span>
         </td>
@@ -687,7 +685,6 @@ function addConfigRow(){
     repLow: null,
     repHigh: null,
     type: "Rep Range",
-    progressRule: "",
     restMin: null,
     sortOrder: maxOrder + 1
   });
