@@ -729,6 +729,7 @@ function nextWorkoutName(){
 }
 
 function addWorkoutGroup(){
+  syncWorkoutOrderFromDOM();
   const workout = nextWorkoutName();
   const maxOrder = Math.max(
     0,
@@ -748,6 +749,14 @@ function addWorkoutGroup(){
   });
 
   renderConfigTable();
+  requestAnimationFrame(() => {
+    const tbody = $("#configTable tbody");
+    if(!tbody) return;
+    const header = tbody.querySelector(`tr[data-workout-header="${CSS.escape(workout)}"]`);
+    if(header){
+      header.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
 }
 
 /* Reorder helpers */
@@ -825,6 +834,23 @@ function updateWorkoutOrderFromDOM(tbody){
   const headers = getWorkoutHeaders(tbody);
   headers.forEach((header, index) => {
     const workout = header.getAttribute("data-workout-header") || "";
+    const order = index + 1;
+    configRows.forEach(row => {
+      if((row.workout || "").trim() === workout){
+        row.workoutOrder = order;
+      }
+    });
+  });
+}
+
+function syncWorkoutOrderFromDOM(){
+  const tbody = $("#configTable tbody");
+  if(!tbody) return;
+  const headers = getWorkoutHeaders(tbody);
+  headers.forEach((header, index) => {
+    const input = header.querySelector("input[data-workout-name]");
+    const workout = (input?.value || header.getAttribute("data-workout-header") || "").trim();
+    if(!workout) return;
     const order = index + 1;
     configRows.forEach(row => {
       if((row.workout || "").trim() === workout){
