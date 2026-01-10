@@ -538,9 +538,6 @@ async function deleteAllSessions(){
 /* ----------------- Config UI + Reordering ----------------- */
 
 function configRowHTML(r){
-  const typeOptions = ["Strength","Rep Range","AMRAP","Other"]
-    .map(t => `<option value="${t}" ${t===r.type?"selected":""}>${t}</option>`).join("");
-
   return `
     <tr data-id="${escapeHtml(r.id)}" draggable="true">
       <td class="w-move">
@@ -554,11 +551,13 @@ function configRowHTML(r){
       </td>
 
       <td><input value="${escapeHtml(r.exercise ?? "")}" data-field="exercise" /></td>
-      <td class="w-workout"><input value="${escapeHtml(r.workout ?? "")}" data-field="workout" list="workoutDatalist" placeholder="Workout name" /></td>
+      <td class="w-workout">
+        <input value="${escapeHtml(r.workout ?? "")}" data-field="workout" list="workoutDatalist" placeholder="Workout name" />
+        <input type="hidden" value="${escapeHtml(r.type ?? "")}" data-field="type" />
+      </td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.sets ?? "")}" data-field="sets" /></td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.repLow ?? "")}" data-field="repLow" /></td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.repHigh ?? "")}" data-field="repHigh" /></td>
-      <td class="w-type"><select data-field="type">${typeOptions}</select></td>
       <td class="w-num"><input inputmode="decimal" value="${escapeHtml(r.restMin ?? "")}" data-field="restMin" /></td>
       <td class="w-actions"><button class="btn danger small deleteRowBtn" type="button">Delete</button></td>
     </tr>
@@ -595,7 +594,7 @@ function renderConfigTable(){
 
     htmlParts.push(`
       <tr class="workout-header" data-workout-header="${escapeHtml(w)}">
-        <td colspan="9" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
+        <td colspan="8" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
           ${escapeHtml(w)}
           <span class="muted" style="font-weight:800; margin-left:10px;">(reorder within this workout)</span>
         </td>
