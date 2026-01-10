@@ -765,6 +765,7 @@ function wireConfigReorder(){
     dragSrc = tr;
     tr.classList.add("dragging");
     e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", tr.getAttribute("data-id") || "");
   });
 
   tbody.addEventListener("dragend", () => {
