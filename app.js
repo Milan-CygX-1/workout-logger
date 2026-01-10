@@ -542,7 +542,7 @@ function configRowHTML(r){
     .map(t => `<option value="${t}" ${t===r.type?"selected":""}>${t}</option>`).join("");
 
   return `
-    <tr data-id="${escapeHtml(r.id)}">
+    <tr data-id="${escapeHtml(r.id)}" data-workout="${escapeHtml(r.workout ?? "")}">
       <td class="w-move">
         <div class="movebox">
           <span class="handle" title="Drag to reorder (desktop)">≡</span>
@@ -554,7 +554,6 @@ function configRowHTML(r){
       </td>
 
       <td><input value="${escapeHtml(r.exercise ?? "")}" data-field="exercise" /></td>
-      <td class="w-workout"><input value="${escapeHtml(r.workout ?? "")}" data-field="workout" list="workoutDatalist" placeholder="Workout name" /></td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.sets ?? "")}" data-field="sets" /></td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.repLow ?? "")}" data-field="repLow" /></td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.repHigh ?? "")}" data-field="repHigh" /></td>
@@ -563,16 +562,6 @@ function configRowHTML(r){
       <td class="w-actions"><button class="btn danger small deleteRowBtn" type="button">Delete</button></td>
     </tr>
   `;
-}
-
-function buildWorkoutDatalist(){
-  let dl = $("#workoutDatalist");
-  if(!dl){
-    dl = document.createElement("datalist");
-    dl.id = "workoutDatalist";
-    document.body.appendChild(dl);
-  }
-  dl.innerHTML = uniqueWorkouts(configRows).map(w => `<option value="${escapeHtml(w)}"></option>`).join("");
 }
 
 function renderConfigTable(){
@@ -595,9 +584,17 @@ function renderConfigTable(){
 
     htmlParts.push(`
       <tr class="workout-header" data-workout-header="${escapeHtml(w)}">
-        <td colspan="9" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
-          ${escapeHtml(w)}
-          <span class="muted" style="font-weight:800; margin-left:10px;">(reorder within this workout)</span>
+        <td colspan="8" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
+          <div class="workout-header-row">
+            <span class="workout-header-label">Workout</span>
+            <input
+              class="workout-name-input"
+              data-workout-name
+              value="${escapeHtml(w)}"
+              placeholder="Workout name"
+            />
+            <span class="muted" style="font-weight:800;">(reorder within this workout)</span>
+          </div>
         </td>
       </tr>
     `);
@@ -612,9 +609,15 @@ function readConfigFromTable(){
   const trs = Array.from($("#configTable tbody").querySelectorAll("tr"));
   const out = [];
   const counters = new Map();
+  let currentWorkout = "";
 
   for(const tr of trs){
-    if(tr.hasAttribute("data-workout-header")) continue;
+    if(tr.hasAttribute("data-workout-header")){
+      const headerInput = tr.querySelector("input[data-workout-name]");
+      const headerValue = (headerInput?.value || tr.getAttribute("data-workout-header") || "").trim();
+      currentWorkout = headerValue || "Workout";
+      continue;
+    }
 
     const id = tr.getAttribute("data-id") || uid();
     const obj = { id };
@@ -633,7 +636,7 @@ function readConfigFromTable(){
     });
 
     if(!obj.exercise) continue;
-    if(!obj.workout) obj.workout = "Workout 1 – Full Body";
+    if(!obj.workout) obj.workout = currentWorkout || "Workout 1 – Full Body";
     if(!obj.type) obj.type = "Other";
 
     const w = obj.workout;
@@ -690,14 +693,12 @@ function addConfigRow(){
   });
 
   renderConfigTable();
-  buildWorkoutDatalist();
 }
 
 /* Reorder helpers */
 
 function getWorkoutValueFromRow(tr){
-  const input = tr.querySelector('input[data-field="workout"]');
-  return (input?.value || "").trim();
+  return (tr.getAttribute("data-workout") || "").trim();
 }
 
 function moveRow(tr, direction){
@@ -759,6 +760,23 @@ function wireConfigReorder(){
     moveRow(tr, up ? -1 : +1);
   });
 
+  tbody.addEventListener("input", (e) => {
+    const input = e.target.closest("input[data-workout-name]");
+    if(!input) return;
+
+    const headerRow = input.closest("tr");
+    if(!headerRow) return;
+
+    const nextWorkout = input.value.trim() || "Workout";
+    headerRow.setAttribute("data-workout-header", nextWorkout);
+
+    let row = headerRow.nextElementSibling;
+    while(row && !row.hasAttribute("data-workout-header")){
+      row.setAttribute("data-workout", nextWorkout);
+      row = row.nextElementSibling;
+    }
+  });
+
   tbody.addEventListener("click", (e) => {
     const del = e.target.closest(".deleteRowBtn");
     if(!del) return;
@@ -814,7 +832,7 @@ function wireConfigReorder(){
       const srcW = getWorkoutValueFromRow(dragSrc);
       const tgtW = getWorkoutValueFromRow(targetTr);
       if(srcW !== tgtW){
-        toast("Drag only within the same workout group (use workout field to change group).", "warn");
+        toast("Drag only within the same workout group (rename the workout header to regroup).", "warn");
       }
     }
     clearDrag();
@@ -963,7 +981,6 @@ async function hydrateFromDB(){
   $("#workoutType").value = workoutTypes[0] || "";
   renderExerciseList();
 
-  buildWorkoutDatalist();
   renderConfigTable();
 
   renderHistoryWorkoutFilter();
