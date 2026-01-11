@@ -4,7 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Workout Logger (Local)</title>
-  <link rel="stylesheet" href="styles.css?v=2024-03-01-12-34-56">
+  <script>
+    window.ASSET_VERSION = "2024-03-01-12-34-56";
+    window.withAssetVersion = (path) => {
+      const separator = path.includes("?") ? "&" : "?";
+      return `${path}${separator}v=${window.ASSET_VERSION}`;
+    };
+    const stylesheet = document.createElement("link");
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = window.withAssetVersion("styles.css");
+    document.head.appendChild(stylesheet);
+  </script>
+  <noscript>
+    <link rel="stylesheet" href="styles.css?v=2024-03-01-12-34-56">
+  </noscript>
 </head>
 <body>
   <div class="topbar">
@@ -185,6 +198,13 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=2024-03-01-12-34-56"></script>
+  <script>
+    const appScript = document.createElement("script");
+    appScript.src = window.withAssetVersion("app.js");
+    document.body.appendChild(appScript);
+  </script>
+  <noscript>
+    <script src="app.js?v=2024-03-01-12-34-56"></script>
+  </noscript>
 </body>
 </html>
