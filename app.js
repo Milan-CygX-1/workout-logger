@@ -24,27 +24,27 @@ let workoutTypes = [];
 
 const DEFAULT_CONFIG = [
   // Workout 1 – Full Body
-  { exercise:"Pull-up", workout:"Workout 1 – Full Body", sets:5, repLow:2, repHigh:2, type:"Strength", restMin:5 },
-  { exercise:"Lunge", workout:"Workout 1 – Full Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", restMin:5 },
-  { exercise:"Push-up", workout:"Workout 1 – Full Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", restMin:5 },
-  { exercise:"Glute Bridge", workout:"Workout 1 – Full Body", sets:3, repLow:6, repHigh:20, type:"Rep Range", restMin:5 },
-  { exercise:"TRX Lateral Raise", workout:"Workout 1 – Full Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", restMin:3 },
-  { exercise:"Calf Raise", workout:"Workout 1 – Full Body", sets:2, repLow:6, repHigh:30, type:"Rep Range", restMin:3 },
-  { exercise:"TRX Crunch", workout:"Workout 1 – Full Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", restMin:3 },
+  { exercise:"Pull-up", workout:"Workout 1 – Full Body", sets:5, repLow:2, repHigh:2, restMin:5 },
+  { exercise:"Lunge", workout:"Workout 1 – Full Body", sets:2, repLow:null, repHigh:null, restMin:5 },
+  { exercise:"Push-up", workout:"Workout 1 – Full Body", sets:3, repLow:12, repHigh:15, restMin:5 },
+  { exercise:"Glute Bridge", workout:"Workout 1 – Full Body", sets:3, repLow:6, repHigh:20, restMin:5 },
+  { exercise:"TRX Lateral Raise", workout:"Workout 1 – Full Body", sets:3, repLow:15, repHigh:20, restMin:3 },
+  { exercise:"Calf Raise", workout:"Workout 1 – Full Body", sets:2, repLow:6, repHigh:30, restMin:3 },
+  { exercise:"TRX Crunch", workout:"Workout 1 – Full Body", sets:2, repLow:null, repHigh:null, restMin:3 },
 
   // Workout 2 – Upper Body
-  { exercise:"Pull-up", workout:"Workout 2 – Upper Body", sets:5, repLow:2, repHigh:2, type:"Strength", restMin:5 },
-  { exercise:"Push-up", workout:"Workout 2 – Upper Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", restMin:5 },
-  { exercise:"TRX Row", workout:"Workout 2 – Upper Body", sets:3, repLow:12, repHigh:15, type:"Rep Range", restMin:5 },
-  { exercise:"TRX Bicep Curl", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", restMin:3 },
-  { exercise:"TRX Triceps Extension", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", restMin:3 },
-  { exercise:"TRX Lateral Raise", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, type:"Rep Range", restMin:3 },
+  { exercise:"Pull-up", workout:"Workout 2 – Upper Body", sets:5, repLow:2, repHigh:2, restMin:5 },
+  { exercise:"Push-up", workout:"Workout 2 – Upper Body", sets:3, repLow:12, repHigh:15, restMin:5 },
+  { exercise:"TRX Row", workout:"Workout 2 – Upper Body", sets:3, repLow:12, repHigh:15, restMin:5 },
+  { exercise:"TRX Bicep Curl", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, restMin:3 },
+  { exercise:"TRX Triceps Extension", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, restMin:3 },
+  { exercise:"TRX Lateral Raise", workout:"Workout 2 – Upper Body", sets:3, repLow:15, repHigh:20, restMin:3 },
 
   // Workout 3 – Lower Body
-  { exercise:"Lunge", workout:"Workout 3 – Lower Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", restMin:5 },
-  { exercise:"Glute Bridge", workout:"Workout 3 – Lower Body", sets:3, repLow:6, repHigh:20, type:"Rep Range", restMin:5 },
-  { exercise:"Calf Raise", workout:"Workout 3 – Lower Body", sets:2, repLow:6, repHigh:30, type:"Rep Range", restMin:3 },
-  { exercise:"TRX Crunch", workout:"Workout 3 – Lower Body", sets:2, repLow:null, repHigh:null, type:"AMRAP", restMin:3 },
+  { exercise:"Lunge", workout:"Workout 3 – Lower Body", sets:2, repLow:null, repHigh:null, restMin:5 },
+  { exercise:"Glute Bridge", workout:"Workout 3 – Lower Body", sets:3, repLow:6, repHigh:20, restMin:5 },
+  { exercise:"Calf Raise", workout:"Workout 3 – Lower Body", sets:2, repLow:6, repHigh:30, restMin:3 },
+  { exercise:"TRX Crunch", workout:"Workout 3 – Lower Body", sets:2, repLow:null, repHigh:null, restMin:3 },
 ];
 
 /* ----------------- Utils ----------------- */
@@ -87,11 +87,6 @@ function uniqueWorkouts(rows){
   return Array.from(new Set(rows.map(r => (r.workout||"").trim()).filter(Boolean))).sort();
 }
 function computeTarget(row){
-  if(row.type === "AMRAP") return `${row.sets} × AMRAP`;
-  if(row.type === "Strength"){
-    if(row.repLow != null && row.repHigh != null && row.repLow === row.repHigh) return `${row.sets} × ${row.repLow}`;
-    return `${row.sets} × ${row.repLow ?? "?"}`;
-  }
   const low = row.repLow ?? "";
   const high = row.repHigh ?? "";
   if(low !== "" && high !== "" && low !== high) return `${row.sets} × ${low}–${high}`;
@@ -273,7 +268,6 @@ function renderExerciseList(){
             <div class="muted small">Target: <b>${escapeHtml(target)}</b></div>
           </div>
           <div class="ex-meta">
-            <span class="pill">${escapeHtml(r.type || "")}</span>
             <span class="pill">${escapeHtml(defaultRest ? `${defaultRest} min rest` : "rest n/a")}</span>
           </div>
         </div>
@@ -538,9 +532,6 @@ async function deleteAllSessions(){
 /* ----------------- Config UI + Reordering ----------------- */
 
 function configRowHTML(r){
-  const typeOptions = ["Strength","Rep Range","AMRAP","Other"]
-    .map(t => `<option value="${t}" ${t===r.type?"selected":""}>${t}</option>`).join("");
-
   return `
     <tr data-id="${escapeHtml(r.id)}" data-workout="${escapeHtml(r.workout ?? "")}">
       <td class="w-move">
@@ -557,7 +548,6 @@ function configRowHTML(r){
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.sets ?? "")}" data-field="sets" /></td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.repLow ?? "")}" data-field="repLow" /></td>
       <td class="w-num"><input inputmode="numeric" value="${escapeHtml(r.repHigh ?? "")}" data-field="repHigh" /></td>
-      <td class="w-type"><select data-field="type">${typeOptions}</select></td>
       <td class="w-num"><input inputmode="decimal" value="${escapeHtml(r.restMin ?? "")}" data-field="restMin" /></td>
       <td class="w-actions"><button class="btn danger small deleteRowBtn" type="button">Delete</button></td>
     </tr>
@@ -592,7 +582,7 @@ function renderConfigTable(){
 
     htmlParts.push(`
       <tr class="workout-header" data-workout-header="${escapeHtml(w)}">
-        <td colspan="8" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
+        <td colspan="7" style="background: rgba(3,7,18,.55); font-weight:1000; color: var(--text);">
           <div class="workout-header-row">
             <div class="movebox">
               <span class="handle workout-handle" title="Drag to reorder workouts">≡</span>
@@ -657,8 +647,6 @@ function readConfigFromTable(){
 
     if(!obj.exercise) continue;
     if(!obj.workout) obj.workout = currentWorkout || "Workout 1 – Full Body";
-    if(!obj.type) obj.type = "Other";
-
     const w = obj.workout;
     const n = (counters.get(w) || 0) + 1;
     counters.set(w, n);
@@ -708,7 +696,6 @@ function addConfigRow(){
     sets: 1,
     repLow: null,
     repHigh: null,
-    type: "Rep Range",
     restMin: null,
     sortOrder: maxOrder + 1
   });
@@ -742,7 +729,6 @@ function addWorkoutGroup(){
     sets: 1,
     repLow: null,
     repHigh: null,
-    type: "Rep Range",
     restMin: null,
     sortOrder: 1,
     workoutOrder: maxOrder + 1
