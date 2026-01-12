@@ -92,8 +92,9 @@ function uniqueWorkouts(rows){
 function computeTarget(row){
   const low = row.repLow ?? "";
   const high = row.repHigh ?? "";
-  if(low !== "" && high !== "" && low !== high) return `${row.sets} × ${low}–${high}`;
-  if(low !== "" && high !== "" && low === high) return `${row.sets} × ${low}`;
+  const effectiveHigh = high === "" ? low : high;
+  if(low !== "" && effectiveHigh !== "" && low !== effectiveHigh) return `${row.sets} × ${low}–${effectiveHigh}`;
+  if(low !== "" && effectiveHigh !== "" && low === effectiveHigh) return `${row.sets} × ${low}`;
   return `${row.sets} sets`;
 }
 function formatDuration(ms){
