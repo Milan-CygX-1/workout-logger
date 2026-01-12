@@ -140,6 +140,54 @@ textarea{min-height:44px; resize:vertical}
   .ex-grid{grid-template-columns: 1fr 1fr 1fr}
 }
 
+.timer-panel{
+  display:grid;
+  gap:12px;
+}
+@media (min-width:800px){
+  .timer-panel{grid-template-columns: 1.2fr 1fr}
+}
+.timer-controls{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.timer-display{
+  font-size:18px;
+  font-weight:1000;
+  letter-spacing:.4px;
+}
+.timer-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.rest-display{
+  font-weight:900;
+  font-size:16px;
+  color: var(--muted);
+}
+.rest-display.active{
+  color: var(--accent);
+}
+
+.session-summary{
+  margin-top:14px;
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(31,41,55,.9);
+  background: rgba(3,7,18,.45);
+}
+.summary-main{
+  font-size:15px;
+  font-weight:900;
+}
+.summary-sub{
+  margin-top:6px;
+  font-size:12px;
+  color: var(--muted);
+}
+
 /* reps grid */
 .reps-grid{
   display:grid;
