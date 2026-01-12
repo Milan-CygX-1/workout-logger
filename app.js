@@ -294,9 +294,19 @@ function stopTimerTicker(){
   clearInterval(timerTickId);
   timerTickId = null;
 }
+function stopOtherExerciseTimers(exerciseId){
+  exerciseTimers.forEach((state, key) => {
+    if(key === exerciseId) return;
+    if(!state.running) return;
+    state.elapsedMs += Date.now() - state.startedAt;
+    state.running = false;
+    state.startedAt = null;
+  });
+}
 function startExerciseTimer(exerciseId){
   const state = getExerciseTimerState(exerciseId);
   if(state.running) return;
+  stopOtherExerciseTimers(exerciseId);
   state.running = true;
   state.startedAt = Date.now();
   updateTimerDisplays();
