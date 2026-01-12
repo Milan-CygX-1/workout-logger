@@ -8,9 +8,10 @@
  */
 
 const DB_NAME = "workout_logger_db";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_CONFIG = "config";
 const STORE_SESSIONS = "sessions";
+const STORE_SETTINGS = "settings";
 const BACKUP_KEY = "workout_logger_backup_v1";
 
 const $ = (sel) => document.querySelector(sel);
@@ -22,6 +23,13 @@ let workoutTypes = [];
 const exerciseTimers = new Map();
 const restTimerState = { totalElapsedMs: 0, active: null };
 let timerTickId = null;
+
+const SETTINGS_KEY = "app_settings";
+const DEFAULT_SETTINGS = {
+  restCompletionDurationSec: 2,
+  restCompletionMode: "both"
+};
+let appSettings = { ...DEFAULT_SETTINGS };
 
 /* ----------------- Defaults (preloaded config) ----------------- */
 
@@ -129,7 +137,7 @@ function getTotalRestElapsedMs(){
   const elapsed = Math.min(Date.now() - active.startedAt, active.durationMs);
   return restTimerState.totalElapsedMs + elapsed;
 }
-function playRestAlarm(){
+function playRestAlarm(durationMs){
   try{
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioCtx.createOscillator();
@@ -141,11 +149,29 @@ function playRestAlarm(){
     gain.connect(audioCtx.destination);
     oscillator.start();
     gain.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
-    oscillator.stop(audioCtx.currentTime + 0.6);
+    const durationSec = Math.max(0.2, durationMs / 1000);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + durationSec);
+    oscillator.stop(audioCtx.currentTime + durationSec);
     oscillator.onended = () => audioCtx.close();
   }catch(err){
     console.warn("Audio alarm unavailable", err);
+  }
+}
+
+function triggerRestCompletionNotification(){
+  const durationSec = Number(appSettings.restCompletionDurationSec || 0);
+  if(!Number.isFinite(durationSec) || durationSec <= 0) return;
+  const durationMs = durationSec * 1000;
+  const mode = appSettings.restCompletionMode;
+  if(mode === "sound" || mode === "both"){
+    playRestAlarm(durationMs);
+  }
+  if(mode === "vibrate" || mode === "both"){
+    if("vibrate" in navigator){
+      navigator.vibrate(durationMs);
+    } else {
+      console.warn("Vibration not supported on this device.");
+    }
   }
 }
 
@@ -165,6 +191,9 @@ function openDB(){
         s.createIndex("dateISO","dateISO",{unique:false});
         s.createIndex("workout","workout",{unique:false});
       }
+      if(!db.objectStoreNames.contains(STORE_SETTINGS)){
+        db.createObjectStore(STORE_SETTINGS, { keyPath:"id" });
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -175,6 +204,13 @@ function getAll(store){
   return new Promise((resolve,reject) => {
     const req = tx(store).getAll();
     req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+function getByKey(store, key){
+  return new Promise((resolve, reject) => {
+    const req = tx(store).get(key);
+    req.onsuccess = () => resolve(req.result || null);
     req.onerror = () => reject(req.error);
   });
 }
@@ -211,6 +247,43 @@ async function ensureDefaults(){
     return { id: uid(), ...r, workout:w, sortOrder:n };
   });
   await bulkPut(STORE_CONFIG, rows);
+}
+
+function normalizeSettings(raw){
+  const normalized = { ...DEFAULT_SETTINGS };
+  if(raw && typeof raw === "object"){
+    const duration = Number(raw.restCompletionDurationSec);
+    if(Number.isFinite(duration) && duration >= 0) normalized.restCompletionDurationSec = duration;
+    const mode = String(raw.restCompletionMode || "").toLowerCase();
+    if(["sound","vibrate","both"].includes(mode)) normalized.restCompletionMode = mode;
+  }
+  return normalized;
+}
+
+async function ensureSettingsDefaults(){
+  const existing = await getByKey(STORE_SETTINGS, SETTINGS_KEY);
+  if(existing) return;
+  await put(STORE_SETTINGS, { id: SETTINGS_KEY, ...DEFAULT_SETTINGS });
+}
+
+async function loadSettings(){
+  const stored = await getByKey(STORE_SETTINGS, SETTINGS_KEY);
+  const normalized = normalizeSettings(stored);
+  if(!stored){
+    await put(STORE_SETTINGS, { id: SETTINGS_KEY, ...normalized });
+  } else if(
+    stored.restCompletionDurationSec !== normalized.restCompletionDurationSec ||
+    stored.restCompletionMode !== normalized.restCompletionMode
+  ){
+    await put(STORE_SETTINGS, { id: SETTINGS_KEY, ...normalized });
+  }
+  return normalized;
+}
+
+async function saveSettings(settings){
+  const normalized = normalizeSettings(settings);
+  await put(STORE_SETTINGS, { id: SETTINGS_KEY, ...normalized });
+  return normalized;
 }
 
 /* ----------------- Ordering (Config -> Logging) ----------------- */
@@ -340,7 +413,7 @@ function finishRestTimer(){
   const active = restTimerState.active;
   if(!active) return;
   stopActiveRestTimer();
-  playRestAlarm();
+  triggerRestCompletionNotification();
   toast("Rest timer done", "ok");
 }
 function startRestTimer(exerciseId, durationMs){
@@ -888,11 +961,30 @@ function readConfigFromTable(){
   return out;
 }
 
+function renderSettingsForm(){
+  const durationInput = $("#restCompletionDuration");
+  const modeSelect = $("#restCompletionMode");
+  if(durationInput) durationInput.value = String(appSettings.restCompletionDurationSec ?? 0);
+  if(modeSelect) modeSelect.value = appSettings.restCompletionMode || "both";
+}
+
+function readSettingsFromForm(){
+  const durationInput = $("#restCompletionDuration");
+  const modeSelect = $("#restCompletionMode");
+  const duration = durationInput ? Number(durationInput.value) : DEFAULT_SETTINGS.restCompletionDurationSec;
+  const mode = modeSelect ? modeSelect.value : DEFAULT_SETTINGS.restCompletionMode;
+  return {
+    restCompletionDurationSec: Number.isFinite(duration) ? duration : DEFAULT_SETTINGS.restCompletionDurationSec,
+    restCompletionMode: mode
+  };
+}
+
 async function saveConfig(){
   const rows = readConfigFromTable();
   await clearStore(STORE_CONFIG);
   await bulkPut(STORE_CONFIG, rows);
 
+  appSettings = await saveSettings(readSettingsFromForm());
   await hydrateFromDB();
   await saveLocalBackup();
   toast("Config saved ✓", "ok");
@@ -908,6 +1000,7 @@ async function resetDefaults(){
     return { id: uid(), ...r, workout:w, sortOrder:n };
   });
   await bulkPut(STORE_CONFIG, rows);
+  appSettings = await saveSettings(DEFAULT_SETTINGS);
   await hydrateFromDB();
   await saveLocalBackup();
   toast("Defaults restored ✓", "ok");
@@ -1297,11 +1390,14 @@ function updateBackupStatus(){
 async function buildExportPayload(){
   const config = await getAll(STORE_CONFIG);
   const sessions = await getAll(STORE_SESSIONS);
+  const settingsRecord = await getByKey(STORE_SETTINGS, SETTINGS_KEY);
+  const settings = normalizeSettings(settingsRecord);
   return {
-    schema: 3,
+    schema: 4,
     exportedAt: new Date().toISOString(),
     config,
-    sessions
+    sessions,
+    settings
   };
 }
 
@@ -1364,12 +1460,15 @@ async function importAll(file){
 
   await clearStore(STORE_CONFIG);
   await clearStore(STORE_SESSIONS);
+  await clearStore(STORE_SETTINGS);
 
   const config = payload.config.map(r => ({ id: r.id || uid(), ...r }));
   const sessions = payload.sessions.map(s => ({ id: s.id || uid(), ...s }));
+  const settings = normalizeSettings(payload.settings);
 
   await bulkPut(STORE_CONFIG, config);
   await bulkPut(STORE_SESSIONS, sessions);
+  await put(STORE_SETTINGS, { id: SETTINGS_KEY, ...settings });
 
   await hydrateFromDB();
   await saveLocalBackup();
@@ -1395,6 +1494,7 @@ function showTab(name){
 
 async function hydrateFromDB(){
   configRows = await getAll(STORE_CONFIG);
+  appSettings = await loadSettings();
 
   if(!configRows.length){
     await ensureDefaults();
@@ -1409,6 +1509,7 @@ async function hydrateFromDB(){
   renderExerciseList();
 
   renderConfigTable();
+  renderSettingsForm();
 
   renderHistoryWorkoutFilter();
   $("#historyFilterWorkout").value = "";
@@ -1487,6 +1588,7 @@ function wireEvents(){
     setDBStatus("Opening DB…", "warn");
     db = await openDB();
     await ensureDefaults();
+    await ensureSettingsDefaults();
     await hydrateFromDB();
     updateBackupStatus();
 
