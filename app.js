@@ -19,6 +19,9 @@ const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 let db;
 let configRows = [];
 let workoutTypes = [];
+const exerciseTimers = new Map();
+const restTimerState = { totalElapsedMs: 0, active: null };
+let timerTickId = null;
 
 /* ----------------- Defaults (preloaded config) ----------------- */
 
@@ -92,6 +95,57 @@ function computeTarget(row){
   if(low !== "" && high !== "" && low !== high) return `${row.sets} × ${low}–${high}`;
   if(low !== "" && high !== "" && low === high) return `${row.sets} × ${low}`;
   return `${row.sets} sets`;
+}
+function formatDuration(ms){
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if(hours > 0){
+    return `${hours}:${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
+  }
+  return `${minutes}:${String(seconds).padStart(2,"0")}`;
+}
+function getExerciseTimerState(exerciseId){
+  if(!exerciseTimers.has(exerciseId)){
+    exerciseTimers.set(exerciseId, { elapsedMs: 0, running: false, startedAt: null });
+  }
+  return exerciseTimers.get(exerciseId);
+}
+function getExerciseElapsedMs(state){
+  if(!state) return 0;
+  const active = state.running && state.startedAt ? (Date.now() - state.startedAt) : 0;
+  return state.elapsedMs + active;
+}
+function getTotalExerciseElapsedMs(){
+  let total = 0;
+  exerciseTimers.forEach(state => { total += getExerciseElapsedMs(state); });
+  return total;
+}
+function getTotalRestElapsedMs(){
+  const active = restTimerState.active;
+  if(!active) return restTimerState.totalElapsedMs;
+  const elapsed = Math.min(Date.now() - active.startedAt, active.durationMs);
+  return restTimerState.totalElapsedMs + elapsed;
+}
+function playRestAlarm(){
+  try{
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.value = 880;
+    gain.gain.value = 0.0001;
+    oscillator.connect(gain);
+    gain.connect(audioCtx.destination);
+    oscillator.start();
+    gain.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.6);
+    oscillator.stop(audioCtx.currentTime + 0.6);
+    oscillator.onended = () => audioCtx.close();
+  }catch(err){
+    console.warn("Audio alarm unavailable", err);
+  }
 }
 
 /* ----------------- IndexedDB helpers ----------------- */
@@ -231,6 +285,128 @@ async function refreshKPIs(){
 
 /* ----------------- Logging UI ----------------- */
 
+function startTimerTicker(){
+  if(timerTickId) return;
+  timerTickId = setInterval(updateTimerDisplays, 500);
+}
+function stopTimerTicker(){
+  if(!timerTickId) return;
+  clearInterval(timerTickId);
+  timerTickId = null;
+}
+function stopOtherExerciseTimers(exerciseId){
+  exerciseTimers.forEach((state, key) => {
+    if(key === exerciseId) return;
+    if(!state.running) return;
+    state.elapsedMs += Date.now() - state.startedAt;
+    state.running = false;
+    state.startedAt = null;
+  });
+}
+function startExerciseTimer(exerciseId){
+  const state = getExerciseTimerState(exerciseId);
+  if(state.running) return;
+  stopOtherExerciseTimers(exerciseId);
+  state.running = true;
+  state.startedAt = Date.now();
+  updateTimerDisplays();
+  startTimerTicker();
+}
+function stopExerciseTimer(exerciseId){
+  const state = getExerciseTimerState(exerciseId);
+  if(!state.running) return;
+  state.elapsedMs += Date.now() - state.startedAt;
+  state.running = false;
+  state.startedAt = null;
+  updateTimerDisplays();
+}
+function resetExerciseTimer(exerciseId){
+  const state = getExerciseTimerState(exerciseId);
+  state.elapsedMs = 0;
+  state.running = false;
+  state.startedAt = null;
+  updateTimerDisplays();
+}
+function stopActiveRestTimer(){
+  const active = restTimerState.active;
+  if(!active) return;
+  clearTimeout(active.timeoutId);
+  const elapsed = Math.min(Date.now() - active.startedAt, active.durationMs);
+  restTimerState.totalElapsedMs += elapsed;
+  restTimerState.active = null;
+}
+function finishRestTimer(){
+  const active = restTimerState.active;
+  if(!active) return;
+  stopActiveRestTimer();
+  playRestAlarm();
+  toast("Rest timer done", "ok");
+}
+function startRestTimer(exerciseId, durationMs){
+  if(!exerciseId) return;
+  if(!Number.isFinite(durationMs) || durationMs <= 0) return;
+  stopActiveRestTimer();
+  restTimerState.active = {
+    exerciseId,
+    durationMs,
+    startedAt: Date.now(),
+    timeoutId: setTimeout(finishRestTimer, durationMs)
+  };
+  updateTimerDisplays();
+  startTimerTicker();
+}
+function resetSessionTimers(){
+  stopActiveRestTimer();
+  restTimerState.totalElapsedMs = 0;
+  exerciseTimers.clear();
+  stopTimerTicker();
+}
+function updateTimerDisplays(){
+  const cards = $$("#exerciseList .exercise-card");
+  const totalExerciseMs = getTotalExerciseElapsedMs();
+  const totalRestMs = getTotalRestElapsedMs();
+  const totalMs = totalExerciseMs + totalRestMs;
+
+  cards.forEach(card => {
+    const exerciseId = card.getAttribute("data-exercise-id");
+    const state = getExerciseTimerState(exerciseId);
+    const timerEl = card.querySelector("[data-exercise-timer]");
+    if(timerEl) timerEl.textContent = formatDuration(getExerciseElapsedMs(state));
+
+    const startBtn = card.querySelector('[data-timer-action="start"]');
+    const stopBtn = card.querySelector('[data-timer-action="stop"]');
+    const resetBtn = card.querySelector('[data-timer-action="reset"]');
+    if(startBtn) startBtn.disabled = state.running;
+    if(stopBtn) stopBtn.disabled = !state.running;
+    if(resetBtn) resetBtn.disabled = state.running || getExerciseElapsedMs(state) === 0;
+
+    const restEl = card.querySelector("[data-rest-display]");
+    if(restEl){
+      const active = restTimerState.active;
+      if(active && active.exerciseId === exerciseId){
+        const remainingMs = Math.max(0, active.durationMs - (Date.now() - active.startedAt));
+        restEl.textContent = formatDuration(remainingMs);
+        restEl.classList.add("active");
+      } else {
+        restEl.textContent = "—";
+        restEl.classList.remove("active");
+      }
+    }
+  });
+
+  $$("#exerciseList [data-total-time]").forEach(el => {
+    el.textContent = `${formatDuration(totalMs)} total`;
+  });
+
+  const summary = $("#sessionSummary");
+  if(summary){
+    summary.innerHTML = `
+      <div class="summary-main">Total session time: <strong>${formatDuration(totalMs)}</strong></div>
+      <div class="summary-sub">Exercise time: ${formatDuration(totalExerciseMs)} · Rest time: ${formatDuration(totalRestMs)}</div>
+    `;
+  }
+}
+
 function renderExerciseList(){
   const workout = $("#workoutType").value;
   const list = $("#exerciseList");
@@ -238,13 +414,16 @@ function renderExerciseList(){
 
   if(!rows.length){
     list.innerHTML = `<div class="muted">No exercises configured for this workout. Add them in Config.</div>`;
+    resetSessionTimers();
+    updateTimerDisplays();
     return;
   }
 
-  list.innerHTML = rows.map((r) => {
+  list.innerHTML = rows.map((r, idx) => {
     const target = computeTarget(r);
     const defaultRest = (r.restMin ?? "");
     const setsPlanned = Math.max(1, Number(r.sets ?? 1));
+    const exerciseId = `exercise-${idx + 1}`;
 
     const repCells = Array.from({length: setsPlanned}, (_, i) => {
       const setNo = i + 1;
@@ -258,6 +437,7 @@ function renderExerciseList(){
 
     return `
       <div class="exercise-card"
+        data-exercise-id="${exerciseId}"
         data-exercise="${escapeHtml(r.exercise)}"
         data-target="${escapeHtml(target)}"
         data-default-rest="${escapeHtml(defaultRest)}"
@@ -268,7 +448,7 @@ function renderExerciseList(){
             <div class="muted small">Target: <b>${escapeHtml(target)}</b></div>
           </div>
           <div class="ex-meta">
-            <span class="pill">${escapeHtml(defaultRest ? `${defaultRest} min rest` : "rest n/a")}</span>
+            <span class="pill" data-total-time>0:00 total</span>
           </div>
         </div>
 
@@ -276,6 +456,25 @@ function renderExerciseList(){
           <label>Reps in set (grid)</label>
           <div class="reps-grid">${repCells}</div>
           <div class="sub">Track each set separately to see progression.</div>
+        </div>
+
+        <div class="timer-panel">
+          <div>
+            <label>Exercise timer</label>
+            <div class="timer-controls">
+              <span class="timer-display" data-exercise-timer>0:00</span>
+              <div class="timer-buttons">
+                <button class="btn small" type="button" data-timer-action="start">Start</button>
+                <button class="btn small" type="button" data-timer-action="stop">Stop</button>
+                <button class="btn small" type="button" data-timer-action="reset">Reset</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label>Rest countdown</label>
+            <div class="rest-display" data-rest-display>—</div>
+            <div class="sub">Starts after logging reps (except final set).</div>
+          </div>
         </div>
 
         <div class="ex-grid">
@@ -305,6 +504,13 @@ function renderExerciseList(){
       </div>
     `;
   }).join("");
+
+  resetSessionTimers();
+  $$("#exerciseList .exercise-card").forEach(card => {
+    const exerciseId = card.getAttribute("data-exercise-id");
+    if(exerciseId) exerciseTimers.set(exerciseId, { elapsedMs: 0, running: false, startedAt: null });
+  });
+  updateTimerDisplays();
 }
 
 function clearLoggingInputs(){
@@ -318,7 +524,14 @@ function clearLoggingInputs(){
     c.querySelector(".restMin").value = "";
     c.querySelector(".pain").value = "0";
     c.querySelector(".itemComment").value = "";
+    c.querySelectorAll(".repInput").forEach(i => delete i.dataset.filled);
   });
+  resetSessionTimers();
+  $$("#exerciseList .exercise-card").forEach(card => {
+    const exerciseId = card.getAttribute("data-exercise-id");
+    if(exerciseId) exerciseTimers.set(exerciseId, { elapsedMs: 0, running: false, startedAt: null });
+  });
+  updateTimerDisplays();
 }
 
 function readExerciseInputs(){
@@ -407,6 +620,22 @@ function wireLiveSetsDoneAutocalc(){
 
     const card = e.target.closest(".exercise-card");
     if(!card) return;
+
+    const setNo = Number(rep.getAttribute("data-set") || "0");
+    const setsPlanned = Number(card.getAttribute("data-sets-planned") || "1");
+    const wasFilled = rep.dataset.filled === "1";
+    const isFilled = rep.value.trim() !== "";
+    if(isFilled && !wasFilled && setNo < setsPlanned){
+      const restInput = card.querySelector(".restMin");
+      const restRaw = (restInput?.value ?? "").trim();
+      const defaultRest = card.getAttribute("data-default-rest") || "";
+      const restMin = restRaw !== "" ? Number(restRaw) : Number(defaultRest);
+      if(Number.isFinite(restMin) && restMin > 0){
+        const exerciseId = card.getAttribute("data-exercise-id");
+        startRestTimer(exerciseId, restMin * 60 * 1000);
+      }
+    }
+    rep.dataset.filled = isFilled ? "1" : "0";
 
     const setsDoneEl = card.querySelector(".setsDone");
     if(!setsDoneEl) return;
@@ -1196,6 +1425,20 @@ function wireEvents(){
       showTab(btn.dataset.tab);
       if(btn.dataset.tab === "history") renderHistory();
     });
+  });
+
+  $("#exerciseList").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-timer-action]");
+    if(!btn) return;
+    const card = btn.closest(".exercise-card");
+    if(!card) return;
+    const exerciseId = card.getAttribute("data-exercise-id");
+    if(!exerciseId) return;
+
+    const action = btn.getAttribute("data-timer-action");
+    if(action === "start") startExerciseTimer(exerciseId);
+    if(action === "stop") stopExerciseTimer(exerciseId);
+    if(action === "reset") resetExerciseTimer(exerciseId);
   });
 
   $("#workoutType").addEventListener("change", () => {
