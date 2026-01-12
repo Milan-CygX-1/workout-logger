@@ -164,6 +164,27 @@
         <div class="sub" style="margin-top:10px">
           Tip: Use consistent workout names (e.g. “Workout 1 – Full Body”) so grouping behaves as expected.
         </div>
+
+        <div class="divider"></div>
+
+        <h2 class="h2">Rest timer completion notification</h2>
+        <div class="row">
+          <div class="field">
+            <label for="restCompletionDuration">Duration (sec)</label>
+            <input id="restCompletionDuration" type="number" inputmode="decimal" min="0" step="0.5" />
+            <div class="sub">Set to 0 to disable.</div>
+          </div>
+
+          <div class="field">
+            <label for="restCompletionMode">Alert style</label>
+            <select id="restCompletionMode">
+              <option value="both">Sound + vibrate</option>
+              <option value="sound">Sound only</option>
+              <option value="vibrate">Vibrate only</option>
+            </select>
+            <div class="sub">Vibration requires a supported device.</div>
+          </div>
+        </div>
       </div>
     </section>
 
