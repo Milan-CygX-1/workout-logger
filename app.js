@@ -595,12 +595,15 @@ async function saveSession(){
   });
   if(!meaningful.length){ toast("Nothing entered yet (fill some reps/sets/comment)", "warn"); return; }
 
+  const totalExerciseMs = getTotalExerciseElapsedMs();
+  const totalRestMs = getTotalRestElapsedMs();
   const session = {
     id: uid(),
     dateISO,
     workout,
     comment,
     items,
+    totalTimeMs: totalExerciseMs + totalRestMs,
     createdAt: new Date().toISOString()
   };
 
@@ -671,8 +674,10 @@ function sessionCardHTML(s){
   const sessionComment = s.comment || "";
 
   const items = (s.items||[]).filter(it => it.exercise);
-  const painMax = items.reduce((m,it)=> Math.max(m, Number(it.pain0to5||0)), 0);
-  const pillClass = painMax >= 4 ? "danger" : painMax >= 2 ? "warn" : "ok";
+  const totalTimeMs = Number(s.totalTimeMs);
+  const totalTimeLabel = Number.isFinite(totalTimeMs) && totalTimeMs > 0
+    ? formatDuration(totalTimeMs)
+    : "—";
 
   const rows = items.map(it => {
     const repsStr = repsArrayToString(it.repsBySet);
@@ -698,7 +703,7 @@ function sessionCardHTML(s){
           <div class="muted small">${escapeHtml(sessionComment)}</div>
         </div>
         <div class="ex-meta">
-          <span class="pill ${pillClass}">Pain max: ${painMax}</span>
+          <span class="pill">Total time: ${totalTimeLabel}</span>
           <button class="btn danger small" data-del="${escapeHtml(s.id)}">Delete</button>
         </div>
       </div>
