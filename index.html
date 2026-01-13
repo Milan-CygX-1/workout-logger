@@ -181,6 +181,7 @@
               <option value="both">Sound + vibrate</option>
               <option value="sound">Sound only</option>
               <option value="vibrate">Vibrate only</option>
+              <option value="banner">Flashing banner</option>
             </select>
             <div class="sub">Vibration requires a supported device.</div>
           </div>
@@ -219,6 +220,7 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="restCompletionBanner" class="rest-banner" role="status" aria-live="assertive">Rest timer complete</div>
 
   <script>
     const appScript = document.createElement("script");

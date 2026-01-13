@@ -280,6 +280,43 @@ tr.dragging{
 }
 .toast.show{display:flex}
 
+.rest-banner{
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 110;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,.6);
+  background: rgba(16,185,129,.85);
+  color: #0b1220;
+  font-weight: 1000;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  box-shadow: 0 10px 30px rgba(15,23,42,.35);
+}
+.rest-banner.show{display:flex}
+.rest-banner.flash{
+  animation: rest-banner-flash 0.8s ease-in-out infinite;
+}
+
+@keyframes rest-banner-flash{
+  0%, 100%{
+    background: rgba(16,185,129,.85);
+    color: #0b1220;
+    transform: translateX(-50%) scale(1);
+  }
+  50%{
+    background: rgba(251,113,133,.95);
+    color: #0b1220;
+    transform: translateX(-50%) scale(1.02);
+  }
+}
+
 .tips{margin:10px 0 0; padding-left:18px; line-height:1.6}
 
 .kpi{display:flex; gap:10px; flex-wrap:wrap}
