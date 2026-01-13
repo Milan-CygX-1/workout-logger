@@ -626,6 +626,9 @@ function readExerciseInputs(){
     const target = c.getAttribute("data-target");
     const defaultRest = c.getAttribute("data-default-rest");
     const setsPlanned = Number(c.getAttribute("data-sets-planned") || "1");
+    const exerciseId = c.getAttribute("data-exercise-id");
+    const timerState = exerciseId ? exerciseTimers.get(exerciseId) : null;
+    const exerciseTimeMs = getExerciseElapsedMs(timerState);
 
     const reps = Array.from({length: setsPlanned}, (_, i) => {
       const setNo = i + 1;
@@ -655,7 +658,8 @@ function readExerciseInputs(){
       repsBySet: reps,
       restMin: Number.isFinite(restMin) ? restMin : null,
       pain0to5: Number.isFinite(pain0to5) ? pain0to5 : 0,
-      comment
+      comment,
+      timeMs: exerciseTimeMs > 0 ? exerciseTimeMs : null
     });
   }
 
@@ -673,7 +677,7 @@ async function saveSession(){
   const items = readExerciseInputs();
   const meaningful = items.filter(it => {
     const anyRep = (it.repsBySet || []).some(x => x !== null);
-    return anyRep || it.setsDone !== null || (it.comment && it.comment.length) || (it.restMin !== null) || (it.pain0to5 && it.pain0to5 > 0);
+    return anyRep || it.setsDone !== null || (it.comment && it.comment.length) || (it.restMin !== null) || (it.pain0to5 && it.pain0to5 > 0) || (it.timeMs && it.timeMs > 0);
   });
   if(!meaningful.length){ toast("Nothing entered yet (fill some reps/sets/comment)", "warn"); return; }
 
@@ -766,13 +770,15 @@ function sessionCardHTML(s){
     const setsDone = it.setsDone ?? "—";
     const rest = it.restMin ?? "—";
     const pain = it.pain0to5 ?? 0;
+    const timeMs = Number(it.timeMs);
+    const timeLabel = Number.isFinite(timeMs) && timeMs > 0 ? formatDuration(timeMs) : "—";
     const cmt = it.comment ? ` · <span class="muted">${escapeHtml(it.comment)}</span>` : "";
     return `<li style="margin:6px 0; line-height:1.4">
       <b>${escapeHtml(it.exercise)}</b>
       <span class="muted small">(${escapeHtml(it.target||"")})</span><br/>
       <span class="muted small">
         Sets done: <b>${escapeHtml(setsDone)}</b> · Reps: <b>${escapeHtml(repsStr || "—")}</b>
-        · Rest: <b>${escapeHtml(rest)}</b> · Pain: <b>${escapeHtml(pain)}</b>${cmt}
+        · Rest: <b>${escapeHtml(rest)}</b> · Pain: <b>${escapeHtml(pain)}</b> · Time: <b>${escapeHtml(timeLabel)}</b>${cmt}
       </span>
     </li>`;
   }).join("");
