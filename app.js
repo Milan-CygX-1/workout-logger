@@ -70,6 +70,15 @@ function todayISO(){
   const day = String(d.getDate()).padStart(2,"0");
   return `${y}-${m}-${day}`;
 }
+function formatDateTimeForFilename(date = new Date()){
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,"0");
+  const day = String(date.getDate()).padStart(2,"0");
+  const h = String(date.getHours()).padStart(2,"0");
+  const min = String(date.getMinutes()).padStart(2,"0");
+  const s = String(date.getSeconds()).padStart(2,"0");
+  return `${y}-${m}-${day}_${h}${min}${s}`;
+}
 function escapeHtml(s){
   if(s===null || s===undefined) return "";
   return String(s)
@@ -1411,7 +1420,8 @@ function downloadPayload(payload, prefix){
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${prefix}-${todayISO()}.json`;
+  const exportedAt = payload?.exportedAt ? new Date(payload.exportedAt) : new Date();
+  a.download = `${prefix}-${formatDateTimeForFilename(exportedAt)}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
