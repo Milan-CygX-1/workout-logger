@@ -30,6 +30,8 @@ const DEFAULT_SETTINGS = {
   restCompletionMode: "both"
 };
 let appSettings = { ...DEFAULT_SETTINGS };
+let restAudioContext = null;
+let restBannerTimeoutId = null;
 
 /* ----------------- Defaults (preloaded config) ----------------- */
 
@@ -146,9 +148,30 @@ function getTotalRestElapsedMs(){
   const elapsed = Math.min(Date.now() - active.startedAt, active.durationMs);
   return restTimerState.totalElapsedMs + elapsed;
 }
+function ensureRestAudioContext(){
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if(!AudioContext) return null;
+  if(restAudioContext && restAudioContext.state !== "closed"){
+    if(restAudioContext.state === "suspended"){
+      restAudioContext.resume().catch((err) => {
+        console.warn("Audio context resume failed", err);
+      });
+    }
+    return restAudioContext;
+  }
+  restAudioContext = new AudioContext();
+  if(restAudioContext.state === "suspended"){
+    restAudioContext.resume().catch((err) => {
+      console.warn("Audio context resume failed", err);
+    });
+  }
+  return restAudioContext;
+}
+
 function playRestAlarm(durationMs){
   try{
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioCtx = ensureRestAudioContext();
+    if(!audioCtx) throw new Error("AudioContext not supported");
     const oscillator = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     oscillator.type = "sine";
@@ -182,6 +205,20 @@ function triggerRestCompletionNotification(){
       console.warn("Vibration not supported on this device.");
     }
   }
+  if(mode === "banner"){
+    showRestCompletionBanner(durationMs);
+  }
+}
+
+function showRestCompletionBanner(durationMs){
+  const banner = $("#restCompletionBanner");
+  if(!banner) return;
+  if(restBannerTimeoutId) clearTimeout(restBannerTimeoutId);
+  banner.classList.add("show","flash");
+  const displayMs = Math.max(400, durationMs);
+  restBannerTimeoutId = setTimeout(() => {
+    banner.classList.remove("show","flash");
+  }, displayMs);
 }
 
 /* ----------------- IndexedDB helpers ----------------- */
@@ -264,7 +301,7 @@ function normalizeSettings(raw){
     const duration = Number(raw.restCompletionDurationSec);
     if(Number.isFinite(duration) && duration >= 0) normalized.restCompletionDurationSec = duration;
     const mode = String(raw.restCompletionMode || "").toLowerCase();
-    if(["sound","vibrate","both"].includes(mode)) normalized.restCompletionMode = mode;
+    if(["sound","vibrate","both","banner"].includes(mode)) normalized.restCompletionMode = mode;
   }
   return normalized;
 }
@@ -428,6 +465,7 @@ function finishRestTimer(){
 function startRestTimer(exerciseId, durationMs){
   if(!exerciseId) return;
   if(!Number.isFinite(durationMs) || durationMs <= 0) return;
+  ensureRestAudioContext();
   stopActiveRestTimer();
   restTimerState.active = {
     exerciseId,
