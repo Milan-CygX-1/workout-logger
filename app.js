@@ -27,11 +27,13 @@ let timerTickId = null;
 const SETTINGS_KEY = "app_settings";
 const DEFAULT_SETTINGS = {
   restCompletionDurationSec: 2,
-  restCompletionMode: "both"
+  restCompletionMode: "both",
+  noSleep: false
 };
 let appSettings = { ...DEFAULT_SETTINGS };
 let restAudioContext = null;
 let restBannerTimeoutId = null;
+let wakeLockHandle = null;
 
 /* ----------------- Defaults (preloaded config) ----------------- */
 
@@ -319,6 +321,7 @@ function normalizeSettings(raw){
     if(Number.isFinite(duration) && duration >= 0) normalized.restCompletionDurationSec = duration;
     const mode = String(raw.restCompletionMode || "").toLowerCase();
     if(["sound","vibrate","both","banner"].includes(mode)) normalized.restCompletionMode = mode;
+    normalized.noSleep = Boolean(raw.noSleep);
   }
   return normalized;
 }
@@ -336,7 +339,8 @@ async function loadSettings(){
     await put(STORE_SETTINGS, { id: SETTINGS_KEY, ...normalized });
   } else if(
     stored.restCompletionDurationSec !== normalized.restCompletionDurationSec ||
-    stored.restCompletionMode !== normalized.restCompletionMode
+    stored.restCompletionMode !== normalized.restCompletionMode ||
+    stored.noSleep !== normalized.noSleep
   ){
     await put(STORE_SETTINGS, { id: SETTINGS_KEY, ...normalized });
   }
@@ -1039,18 +1043,22 @@ function readConfigFromTable(){
 function renderSettingsForm(){
   const durationInput = $("#restCompletionDuration");
   const modeSelect = $("#restCompletionMode");
+  const noSleepToggle = $("#noSleepToggle");
   if(durationInput) durationInput.value = String(appSettings.restCompletionDurationSec ?? 0);
   if(modeSelect) modeSelect.value = appSettings.restCompletionMode || "both";
+  if(noSleepToggle) noSleepToggle.checked = Boolean(appSettings.noSleep);
 }
 
 function readSettingsFromForm(){
   const durationInput = $("#restCompletionDuration");
   const modeSelect = $("#restCompletionMode");
+  const noSleepToggle = $("#noSleepToggle");
   const duration = durationInput ? Number(durationInput.value) : DEFAULT_SETTINGS.restCompletionDurationSec;
   const mode = modeSelect ? modeSelect.value : DEFAULT_SETTINGS.restCompletionMode;
   return {
     restCompletionDurationSec: Number.isFinite(duration) ? duration : DEFAULT_SETTINGS.restCompletionDurationSec,
-    restCompletionMode: mode
+    restCompletionMode: mode,
+    noSleep: noSleepToggle ? noSleepToggle.checked : DEFAULT_SETTINGS.noSleep
   };
 }
 
@@ -1060,6 +1068,7 @@ async function saveConfig(){
   await bulkPut(STORE_CONFIG, rows);
 
   appSettings = await saveSettings(readSettingsFromForm());
+  syncWakeLock();
   await hydrateFromDB();
   await saveLocalBackup();
   toast("Config saved ✓", "ok");
@@ -1076,6 +1085,7 @@ async function resetDefaults(){
   });
   await bulkPut(STORE_CONFIG, rows);
   appSettings = await saveSettings(DEFAULT_SETTINGS);
+  syncWakeLock();
   await hydrateFromDB();
   await saveLocalBackup();
   toast("Defaults restored ✓", "ok");
@@ -1586,6 +1596,7 @@ async function hydrateFromDB(){
 
   renderConfigTable();
   renderSettingsForm();
+  syncWakeLock();
 
   renderHistoryWorkoutFilter();
   $("#historyFilterWorkout").value = "";
@@ -1593,6 +1604,37 @@ async function hydrateFromDB(){
   await renderHistory();
 
   await refreshKPIs();
+}
+
+async function requestWakeLock(){
+  if(!("wakeLock" in navigator)) return;
+  if(!appSettings.noSleep) return;
+  if(document.visibilityState !== "visible") return;
+  if(wakeLockHandle) return;
+  try{
+    wakeLockHandle = await navigator.wakeLock.request("screen");
+    wakeLockHandle.addEventListener("release", () => {
+      wakeLockHandle = null;
+    });
+  }catch(err){
+    console.warn("Wake Lock request failed", err);
+  }
+}
+
+function releaseWakeLock(){
+  if(!wakeLockHandle) return;
+  wakeLockHandle.release().catch((err) => {
+    console.warn("Wake Lock release failed", err);
+  });
+  wakeLockHandle = null;
+}
+
+function syncWakeLock(){
+  if(appSettings.noSleep){
+    requestWakeLock();
+    return;
+  }
+  releaseWakeLock();
 }
 
 /* ----------------- Wiring ----------------- */
@@ -1657,6 +1699,14 @@ function wireEvents(){
       logDate.click();
     });
   }
+
+  document.addEventListener("visibilitychange", () => {
+    if(document.visibilityState === "visible"){
+      syncWakeLock();
+      return;
+    }
+    releaseWakeLock();
+  });
 }
 
 (async function init(){
