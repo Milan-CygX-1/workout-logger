@@ -3,6 +3,8 @@
   --border:#1f2937; --danger:#fb7185; --ok:#34d399; --warn:#fbbf24;
   --shadow: 0 10px 30px rgba(0,0,0,.35);
   --radius: 16px;
+  --topbar-height: 72px;
+  --topbar-offset: calc(var(--topbar-height) + 24px);
 }
 
 *{box-sizing:border-box}
@@ -17,7 +19,7 @@ body{
 .muted{color:var(--muted); font-size:13px}
 a{color:var(--accent); text-decoration:none}
 
-.wrap{max-width:980px; margin:0 auto; padding:96px 14px 80px}
+.wrap{max-width:980px; margin:0 auto; padding:var(--topbar-offset) 14px 80px}
 
 .topbar{
   position:fixed; top:0; left:0; right:0; z-index:50;

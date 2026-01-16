@@ -105,6 +105,23 @@ function debounce(fn, ms){
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
 }
+function updateTopbarOffset(){
+  const topbar = document.querySelector(".topbar");
+  if(!topbar) return;
+  const height = Math.ceil(topbar.getBoundingClientRect().height);
+  document.documentElement.style.setProperty("--topbar-height", `${height}px`);
+}
+function wireTopbarOffset(){
+  const topbar = document.querySelector(".topbar");
+  if(!topbar) return;
+  updateTopbarOffset();
+  if("ResizeObserver" in window){
+    const observer = new ResizeObserver(() => updateTopbarOffset());
+    observer.observe(topbar);
+    return;
+  }
+  window.addEventListener("resize", debounce(updateTopbarOffset, 120));
+}
 function uniqueWorkouts(rows){
   return Array.from(new Set(rows.map(r => (r.workout||"").trim()).filter(Boolean))).sort();
 }
@@ -1651,6 +1668,7 @@ function wireEvents(){
     await hydrateFromDB();
     updateBackupStatus();
 
+    wireTopbarOffset();
     wireEvents();
     wireLiveSetsDoneAutocalc();
     wireConfigReorder();
