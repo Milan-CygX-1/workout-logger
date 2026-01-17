@@ -763,6 +763,19 @@ async function saveSession(){
 function wireLiveSetsDoneAutocalc(){
   const list = $("#exerciseList");
 
+  list.addEventListener("focusin", (e) => {
+    const rep = e.target.closest(".repInput");
+    if(!rep) return;
+
+    const card = rep.closest(".exercise-card");
+    if(!card) return;
+
+    const exerciseId = card.getAttribute("data-exercise-id");
+    if(!exerciseId) return;
+
+    startExerciseTimer(exerciseId);
+  });
+
   list.addEventListener("input", (e) => {
     const rep = e.target.closest(".repInput");
     if(!rep) return;
