@@ -222,8 +222,8 @@ textarea{min-height:44px; resize:vertical}
 }
 
 /* Config table */
-.table-wrap{overflow-y:auto; overflow-x:hidden}
-table{width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:16px; border:1px solid rgba(31,41,55,.9)}
+.table-wrap{overflow-y:auto; overflow-x:auto}
+table{min-width:100%; width:max-content; table-layout:auto; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:16px; border:1px solid rgba(31,41,55,.9)}
 th, td{padding:10px 10px; border-bottom:1px solid rgba(31,41,55,.7); vertical-align:top; word-break:break-word}
 th{background: rgba(3,7,18,.45); color: #94a3b8; text-align:left; font-size:12px; letter-spacing:.15px}
 tr:last-child td{border-bottom:none}
