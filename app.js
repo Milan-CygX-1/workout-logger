@@ -1628,6 +1628,9 @@ async function requestWakeLock(){
     wakeLockHandle = await navigator.wakeLock.request("screen");
     wakeLockHandle.addEventListener("release", () => {
       wakeLockHandle = null;
+      if(appSettings.noSleep && document.visibilityState === "visible"){
+        requestWakeLock();
+      }
     });
   }catch(err){
     console.warn("Wake Lock request failed", err);
@@ -1699,6 +1702,14 @@ function wireEvents(){
   $("#historyFilterWorkout").addEventListener("change", renderHistory);
   $("#historySearch").addEventListener("input", debounce(renderHistory, 250));
   $("#deleteAllBtn").addEventListener("click", deleteAllSessions);
+
+  const noSleepToggle = $("#noSleepToggle");
+  if(noSleepToggle){
+    noSleepToggle.addEventListener("change", async () => {
+      appSettings = await saveSettings(readSettingsFromForm());
+      syncWakeLock();
+    });
+  }
 
   const logDatePickerBtn = $("#logDatePickerBtn");
   if(logDatePickerBtn){
