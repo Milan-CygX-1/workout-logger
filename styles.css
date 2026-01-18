@@ -222,9 +222,9 @@ textarea{min-height:44px; resize:vertical}
 }
 
 /* Config table */
-.table-wrap{overflow:auto}
-table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:16px; border:1px solid rgba(31,41,55,.9)}
-th, td{padding:10px 10px; border-bottom:1px solid rgba(31,41,55,.7); vertical-align:top}
+.table-wrap{overflow-y:auto; overflow-x:hidden}
+table{width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:16px; border:1px solid rgba(31,41,55,.9)}
+th, td{padding:10px 10px; border-bottom:1px solid rgba(31,41,55,.7); vertical-align:top; word-break:break-word}
 th{background: rgba(3,7,18,.45); color: #94a3b8; text-align:left; font-size:12px; letter-spacing:.15px}
 tr:last-child td{border-bottom:none}
 td .btn{width:auto}
@@ -381,4 +381,5 @@ tr.dragging{
   .wrap{padding-left: 10px; padding-right: 10px;}
   .card{padding: 12px;}
   th, td{padding: 10px 8px;}
+  #configTable td, #configTable th{min-width:0;}
 }
