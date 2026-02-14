@@ -507,7 +507,7 @@ function updateTimerDisplays(){
   const cards = $$("#exerciseList .exercise-card");
   const totalExerciseMs = getTotalExerciseElapsedMs();
   const totalRestMs = getTotalRestElapsedMs();
-  const totalMs = totalExerciseMs + totalRestMs;
+  const totalMs = totalExerciseMs;
 
   cards.forEach(card => {
     const exerciseId = card.getAttribute("data-exercise-id");
@@ -748,7 +748,7 @@ async function saveSession(){
     workout,
     comment,
     items,
-    totalTimeMs: totalExerciseMs + totalRestMs,
+    totalTimeMs: totalExerciseMs,
     createdAt: new Date().toISOString()
   };
 
