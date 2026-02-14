@@ -399,8 +399,32 @@ function renderHistoryWorkoutFilter(){
     workoutTypes.map(w => `<option value="${escapeHtml(w)}">${escapeHtml(w)}</option>`).join("");
 }
 
+
+function getSessionExerciseTotalMs(session){
+  const items = Array.isArray(session?.items) ? session.items : [];
+  let computedTotal = 0;
+  for(const it of items){
+    const itemMs = Number(it?.timeMs);
+    if(Number.isFinite(itemMs) && itemMs > 0) computedTotal += itemMs;
+  }
+  if(computedTotal > 0) return computedTotal;
+  const storedTotal = Number(session?.totalTimeMs);
+  return Number.isFinite(storedTotal) && storedTotal > 0 ? storedTotal : 0;
+}
+
+async function migrateLegacySessionTotals(sessions){
+  for(const session of sessions){
+    const exerciseOnlyTotalMs = getSessionExerciseTotalMs(session);
+    if(exerciseOnlyTotalMs <= 0) continue;
+    const storedTotalMs = Number(session.totalTimeMs);
+    if(Number.isFinite(storedTotalMs) && storedTotalMs === exerciseOnlyTotalMs) continue;
+    session.totalTimeMs = exerciseOnlyTotalMs;
+    await put(STORE_SESSIONS, session);
+  }
+}
 async function loadSessions(){
   const sessions = await getAll(STORE_SESSIONS);
+  await migrateLegacySessionTotals(sessions);
   sessions.sort((a,b)=> (b.dateISO||"").localeCompare(a.dateISO||"") || (b.createdAt||"").localeCompare(a.createdAt||""));
   return sessions;
 }
@@ -526,7 +550,7 @@ function updateTimerDisplays(){
   const cards = $$("#exerciseList .exercise-card");
   const totalExerciseMs = getTotalExerciseElapsedMs();
   const totalRestMs = getTotalRestElapsedMs();
-  const totalMs = totalExerciseMs + totalRestMs;
+  const totalMs = totalExerciseMs;
 
   cards.forEach(card => {
     const exerciseId = card.getAttribute("data-exercise-id");
@@ -767,7 +791,7 @@ async function saveSession(){
     workout,
     comment,
     items,
-    totalTimeMs: totalExerciseMs + totalRestMs,
+    totalTimeMs: totalExerciseMs,
     createdAt: new Date().toISOString()
   };
 
@@ -851,8 +875,8 @@ function sessionCardHTML(s){
   const sessionComment = s.comment || "";
 
   const items = (s.items||[]).filter(it => it.exercise);
-  const totalTimeMs = Number(s.totalTimeMs);
-  const totalTimeLabel = Number.isFinite(totalTimeMs) && totalTimeMs > 0
+  const totalTimeMs = getSessionExerciseTotalMs(s);
+  const totalTimeLabel = totalTimeMs > 0
     ? formatDuration(totalTimeMs)
     : "—";
 
