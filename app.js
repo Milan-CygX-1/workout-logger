@@ -127,6 +127,10 @@ function wireTopbarOffset(){
 function uniqueWorkouts(rows){
   return Array.from(new Set(rows.map(r => (r.workout||"").trim()).filter(Boolean))).sort();
 }
+function refreshWorkoutTypes(){
+  workoutTypes = uniqueWorkouts(configRows);
+  return workoutTypes;
+}
 function computeTarget(row){
   const low = row.repLow ?? "";
   const high = row.repHigh ?? "";
@@ -370,6 +374,8 @@ function setDBStatus(text, kind){
   el.classList.add(kind);
 }
 function renderWorkoutTypeDropdown(){
+  refreshWorkoutTypes();
+
   const sel = $("#workoutType");
   sel.innerHTML = workoutTypes.map(w => `<option value="${escapeHtml(w)}">${escapeHtml(w)}</option>`).join("");
 
@@ -1632,7 +1638,7 @@ async function hydrateFromDB(){
     configRows = await getAll(STORE_CONFIG);
   }
 
-  workoutTypes = uniqueWorkouts(configRows);
+  refreshWorkoutTypes();
 
   $("#logDate").value = todayISO();
   renderWorkoutTypeDropdown();
