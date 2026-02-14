@@ -127,6 +127,10 @@ function wireTopbarOffset(){
 function uniqueWorkouts(rows){
   return Array.from(new Set(rows.map(r => (r.workout||"").trim()).filter(Boolean))).sort();
 }
+function refreshWorkoutTypes(){
+  workoutTypes = uniqueWorkouts(configRows);
+  return workoutTypes;
+}
 function computeTarget(row){
   const low = row.repLow ?? "";
   const high = row.repHigh ?? "";
@@ -370,8 +374,23 @@ function setDBStatus(text, kind){
   el.classList.add(kind);
 }
 function renderWorkoutTypeDropdown(){
+  refreshWorkoutTypes();
+
   const sel = $("#workoutType");
   sel.innerHTML = workoutTypes.map(w => `<option value="${escapeHtml(w)}">${escapeHtml(w)}</option>`).join("");
+
+  const configSel = $("#configWorkoutSelect");
+  if(configSel){
+    const previousValue = configSel.value;
+    configSel.innerHTML =
+      `<option value="">Select workout</option>` +
+      workoutTypes.map(w => `<option value="${escapeHtml(w)}">${escapeHtml(w)}</option>`).join("");
+    if(previousValue && workoutTypes.includes(previousValue)){
+      configSel.value = previousValue;
+    } else {
+      configSel.value = workoutTypes[0] || "";
+    }
+  }
 }
 function renderHistoryWorkoutFilter(){
   const sel = $("#historyFilterWorkout");
@@ -1105,7 +1124,8 @@ async function resetDefaults(){
 }
 
 function addConfigRow(){
-  const w = workoutTypes[0] || "Workout 1 – Full Body";
+  const selectedWorkout = $("#configWorkoutSelect")?.value?.trim() || "";
+  const w = selectedWorkout || workoutTypes[0] || "Workout 1 – Full Body";
   const maxOrder = Math.max(
     0,
     ...configRows.filter(r => r.workout === w).map(r => Number(r.sortOrder||0))
@@ -1156,6 +1176,9 @@ function addWorkoutGroup(){
   });
 
   renderConfigTable();
+  renderWorkoutTypeDropdown();
+  const configSel = $("#configWorkoutSelect");
+  if(configSel) configSel.value = workout;
   requestAnimationFrame(() => {
     const tbody = $("#configTable tbody");
     if(!tbody) return;
@@ -1330,6 +1353,7 @@ function wireConfigReorder(){
     const headerRow = input.closest("tr");
     if(!headerRow) return;
 
+    const prevWorkout = headerRow.getAttribute("data-workout-header") || "";
     const nextWorkout = input.value.trim() || "Workout";
     headerRow.setAttribute("data-workout-header", nextWorkout);
 
@@ -1337,6 +1361,19 @@ function wireConfigReorder(){
     while(row && !row.hasAttribute("data-workout-header")){
       row.setAttribute("data-workout", nextWorkout);
       row = row.nextElementSibling;
+    }
+
+    const configSel = $("#configWorkoutSelect");
+    if(configSel){
+      const currentValue = configSel.value;
+      const renamedOption = Array.from(configSel.options).find(opt => opt.value === prevWorkout);
+      if(renamedOption){
+        renamedOption.value = nextWorkout;
+        renamedOption.textContent = nextWorkout;
+      }
+      if(currentValue === prevWorkout){
+        configSel.value = nextWorkout;
+      }
     }
   });
 
@@ -1365,6 +1402,7 @@ function wireConfigReorder(){
     }
     headerRow.remove();
     configRows = readConfigFromTable();
+    renderWorkoutTypeDropdown();
   });
 
   tbody.addEventListener("pointerdown", (e) => {
@@ -1600,7 +1638,7 @@ async function hydrateFromDB(){
     configRows = await getAll(STORE_CONFIG);
   }
 
-  workoutTypes = uniqueWorkouts(configRows);
+  refreshWorkoutTypes();
 
   $("#logDate").value = todayISO();
   renderWorkoutTypeDropdown();
